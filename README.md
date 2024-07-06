@@ -4,7 +4,7 @@ A GameMaker Studio 1.4 open-source engine based on Minecraft.
 
 Feel free to edit the project, and add your own content!
 
-##Features
+## Features
 Classic Minecraft control scheme in a first-person view (Includes jumping)
 Lighting Engine
 Raycasting (Block-breaking and placing)
@@ -17,7 +17,7 @@ Improved block placing & breaking
 Terrain generation and chunking
 Inventory system
 
-##Credits
+## Credits
 Programmed and Developed by – TeamCS1 (Programming and UV mapping)
 Minecraft textures – Mojang
 Sky Textures and Skybox  –
