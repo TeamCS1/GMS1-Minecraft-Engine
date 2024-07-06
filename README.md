@@ -24,7 +24,7 @@ Supported up to GameMaker Studio Professional Edition - 1.4.9999
 
 ## Credits
 * Programmed and Developed by – TeamCS1 (Programming and UV mapping)
-*Minecraft textures – Mojang
+* Minecraft textures – Mojang
 * Sky Textures and Skybox  –
 * GameMaker 1.4 Engine – YoYoGames
 * Dragonite DDD Converter Tool – obj to d3d conversion
