@@ -18,6 +18,10 @@ Feel free to edit the project, and add your own content!
 * Terrain generation and chunking
 * Inventory system
 
+## Compatibility
+
+Supported up to GameMaker Studio Professional Edition - 1.4.9999
+
 ## Credits
 * Programmed and Developed by – TeamCS1 (Programming and UV mapping)
 *Minecraft textures – Mojang
