@@ -1,11 +1,14 @@
+
+//handle collisions with blocks
 if position_meeting(x, y, obj_sand_block)
 {
     if z > 79 && z < 96 && jump == false
     {
         if z < 96
         {
+            //hitting the sand from the side
             move_bounce_all(false);
-            show_debug_message("Colliding with sand!")
+            show_debug_message("Colliding with sand from the side!")
         }
     }
     
@@ -17,6 +20,7 @@ if position_meeting(x, y, obj_sand_block)
     }
 }
 
+//if the player is not on the same block as sand and jump is false
 if !position_meeting(x, y, obj_sand_block) && jump == false
 {
     if z >= 96
@@ -27,4 +31,13 @@ if !position_meeting(x, y, obj_sand_block) && jump == false
     }
 }
 
+//layer handler
+if z == 80
+{
+    global.layer = 1;
+}
 
+else if z == 96
+{
+    global.layer = 2;    
+}

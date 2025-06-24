@@ -74,14 +74,15 @@ draw_text(10,90, "Player Z: " + string(obj_camera.z));
 
 //draw_text(10,110, "Sand Z: " + string(obj_sand_block.z));
 draw_text(10,130, "Jump Bol: " + string(obj_camera.jump));
-draw_text(10,150, "Direction Facing: " + string(obj_camera.dir));
+draw_text(10,150, "Direction Facing: " + string(obj_camera.direction));
 draw_text(10,170, "Direction Facing: " + string(obj_camera.directionText));
 
 draw_text(10,190, "Fog Distance: " + string(global.fog_far));
 draw_text(10,210, "Render Distance: " + string(global.renderDistance));
 draw_text(10,230, "Clipping Distance: " + string(global.zFar));
 draw_text(10,250, "Grass Blocks: " + string(instance_number(obj_grass_block)));
-draw_text(10,270, "Chunks: " + string(instance_number(obj_chunk)));
+draw_text(10,270, "Current Layer: " + string(global.layer));
+//draw_text(10,270, "Chunks: " + string(instance_number(obj_chunk)));
 //reset drawing
 d3d_set_hidden(true);
 draw_set_halign(fa_left);
@@ -111,7 +112,8 @@ draw_set_halign(fa_left);
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>switch(global.slots)
+            <string>///Hotbar drawing code
+switch(global.slots)
 {
     case 0 :
     xx = 605;

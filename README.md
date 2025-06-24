@@ -29,6 +29,6 @@ Supported up to GameMaker Studio Professional Edition - 1.4.9999
 * GameMaker 1.4 Engine – YoYoGames
 * Dragonite DDD Converter Tool – obj to d3d conversion
 * Ultimate Unwrap 3D Pro – UV Mapping
-* Sketchup Make 2021 – 3D Modelling
+* Sketchup Make 2023 – 3D Modelling
 * Scripts licensed from GML Scripts
 * Jordan Brewster – ‘The Ideas Guy’

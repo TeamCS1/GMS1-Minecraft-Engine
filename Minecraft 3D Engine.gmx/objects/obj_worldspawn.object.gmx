@@ -30,19 +30,20 @@ display_reset(0,true);  //8,true
 
 //Init some global variables so we can modify these
 global.fog_near = 0;
-global.fog_far = 500;   //the fog to mask the blocks, must be lower than render distance
+global.fog_far = 500;   //the fog to mask the horizon blocks, must be lower than render distance
 global.renderDistance = 768;    //how far blocks are rendered
 global.zFar = 32000;    //the horizon boundary
 global.water_surface = surface_create(256,256);
-randomize(); //must be done once.
+global.layer = -1;
+randomize(); //must be done once. seed support coming soon
 
 //create camera, skybox, and water objects
-instance_create(0,0,obj_camera);
+instance_create(64,64,obj_camera);
 instance_create(x,y,obj_sky);
 instance_create(0,0,obj_effects_controller);
 instance_create(0,0,obj_water);
 
-instance_create(0,0,obj_chunk)
+instance_create(0,0,obj_biome_gen)
 //hide the cursor
 window_set_cursor(cr_none);
 </string>
