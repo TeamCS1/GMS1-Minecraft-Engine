@@ -1,6 +1,6 @@
 # GMS1-Minecraft-Engine
 
-A GameMaker Studio 1.4 open-source engine based on Minecraft.
+A GameMaker Studio 1.4.9999 open-source engine based on Minecraft.
 
 Feel free to edit the project, and add your own content!
 
