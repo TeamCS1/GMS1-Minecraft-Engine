@@ -12,10 +12,10 @@ Feel free to edit the project, and add your own content!
 * Grass and Snow starting map
 
 ## Controls
-Press 1 - Grass Block
-Press 2 - Torch
-Press Keypad 4 - Reduce Render Distance
-Press Keypad 6 - Increase Render Distance
+* Press 1 - Grass Block
+* Press 2 - Torch
+* Press Keypad 4 - Reduce Render Distance
+* Press Keypad 6 - Increase Render Distance
 
 ## Coming soon
 * Biomes
