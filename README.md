@@ -11,6 +11,12 @@ Feel free to edit the project, and add your own content!
 * 1000×1000 Superflat world
 * Grass and Snow starting map
 
+## Controls
+Press 1 - Grass Block
+Press 2 - Torch
+Press Keypad 4 - Reduce Render Distance
+Press Keypad 6 - Increase Render Distance
+
 ## Coming soon
 * Biomes
 * Infinite map
