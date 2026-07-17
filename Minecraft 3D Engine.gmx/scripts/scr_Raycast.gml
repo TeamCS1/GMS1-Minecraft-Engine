@@ -55,6 +55,17 @@ with obj_camera
                     hit_block = id;
                 }
             }
+
+            // Tall grass decoration: centered on its own x/y instead of a corner,
+            // so its box is offset by half a cell.
+            if (hit_block == noone)
+            with (obj_tinted_cross)
+            {
+                if (ray_x >= x - 16 && ray_x < x + 16 && ray_y >= y - 16 && ray_y < y + 16 && ray_z >= z && ray_z < z + 32)
+                {
+                    hit_block = id;
+                }
+            }
         }
 
         if (hit_block != noone)
@@ -64,6 +75,7 @@ with obj_camera
             var place_z = floor(prev_z / 32) * 32;
             var new_ray = instance_create(prev_x, prev_y, obj_ray_cast);
             new_ray.z_offset = (place_z - 32) + z_scroll_offset;
+            new_ray.target_block = hit_block;
 
             directionText = object_get_name(hit_block.object_index);
         }

@@ -27,6 +27,7 @@
             <kind>1</kind>
             <string>z_offset = 0;
 z = 32;
+target_block = noone;
 move_snap(32,32);
 </string>
           </argument>
@@ -82,57 +83,11 @@ if (mouse_check_button_released(mb_right))
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>var closest_block = noone;
-var closest_dist = 999999;
-
-// Check tall grass blocks
-with (obj_tinted_cross)
+            <string>// Destroy exactly what the raycast hit (scr_Raycast.gml set target_block
+// when this reticle was spawned), instead of re-searching by distance.
+if (instance_exists(target_block))
 {
-    var dist3d = point_distance_3d(other.x, other.y, other.z + other.z_offset, x, y, z);
-    if (dist3d &lt; closest_dist)
-    {
-        closest_dist = dist3d;
-        closest_block = id;
-    }
-}
-
-// Check grass blocks
-with (obj_grass_block)
-{
-    var dist3d = point_distance_3d(other.x, other.y, other.z + other.z_offset, x, y, z);
-    if (dist3d &lt; closest_dist)
-    {
-        closest_dist = dist3d;
-        closest_block = id;
-    }
-}
-
-// Check sand blocks
-with (obj_sand_block)
-{
-    var dist3d = point_distance_3d(other.x, other.y, other.z + other.z_offset, x, y, z);
-    if (dist3d &lt; closest_dist)
-    {
-        closest_dist = dist3d;
-        closest_block = id;
-    }
-}
-
-// Check snow blocks
-with (obj_snow_block)
-{
-    var dist3d = point_distance_3d(other.x, other.y, other.z + other.z_offset, x, y, z);
-    if (dist3d &lt; closest_dist)
-    {
-        closest_dist = dist3d;
-        closest_block = id;
-    }
-}
-
-// If found, destroy the block
-if (closest_block != noone)
-{
-    with (closest_block)
+    with (target_block)
     {
         instance_destroy();
     }
