@@ -46,8 +46,8 @@ without introducing modern GML syntax.
     only `if distance_to_object(obj_camera) < global.renderDistance`,
     texture via `sprite_get_texture`, and toggle
     `texture_set_interpolation` around the draw call.
-- World/chunk data storage: TBD — **open question for the project owner**,
-  see below.
+- World/chunk data storage: currently plain object instances; a chunk
+  streaming system is planned — see Roadmap below.
 - Raycasting/interaction (`scr_Raycast.gml`, called from `obj_camera`'s Step
   event): marches a ray from the camera's eye position along the actual
   look vector (`lookx`/`looky`/`lookz`, derived from `facingDir`/`zdir`)
@@ -69,20 +69,20 @@ without introducing modern GML syntax.
 
 ## Roadmap (confirmed by project owner)
 
-- Infinite/streaming world generation is planned. Blocks are currently
-  plain object instances (no `ds_grid`/`ds_map`), which likely won't scale
-  to streaming — see the open world/chunk data model question below.
+- World/chunk data model: blocks are currently plain object instances (no
+  `ds_grid`/`ds_map`), located via `instance_nearest`/`with` over each
+  per-block-type object. This will be replaced by an efficient chunking
+  system that streams chunks in/out as the player moves through the
+  world. Planned for the future — more basic issues need fixing first
+  before tackling this.
+- Infinite/streaming world generation is planned (depends on the chunking
+  system above).
 - Sand will become part of random terrain generation (`obj_biome_gen`
   currently only ever chooses grass or snow); a desert biome is planned
   for later.
 
 ## Open questions
 
-- **World/chunk data model**: how will block data be stored once
-  infinite/streaming generation is built? Confirm whether the
-  instance-based approach (`instance_nearest`/`with` over per-block-type
-  objects) will be replaced by a chunk/grid data structure. (Owner to
-  answer.)
 - **Block placement type selection**: `obj_ray_cast`'s right-click handler
   still has `// TODO: allow selection of blocks` and always places
   `obj_grass_block`. Wire to `global.slots` once there's a real inventory?
