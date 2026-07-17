@@ -30,14 +30,17 @@ if (found_block && jump == false)
     }
 }
 
-//if the player is not over any solid block, drop back to ground level
+//if the player walked off an edge (no block underneath, above ground),
+//start falling using the same gravity arc as a jump -- jumpHeightModifier
+//starts at 0 instead of 5, so there's no upward boost, just a fall that
+//speeds up over time and lands via scr_FindSupportHeight() the same way
+//a jump's descent already does.
 if (!found_block && jump == false)
 {
     if (z > 80)
     {
-        z = 80;
-        player_height = 80;
-        show_debug_message("Reset Height to 80")
+        jump = true;
+        jumpHeightModifier = 0;
     }
 }
 

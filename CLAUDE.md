@@ -83,7 +83,11 @@ without introducing modern GML syntax.
   automatically: a block placed with its own z at or above a lower
   block's top just produces a taller support height, no per-layer code
   needed. `global.layer` is derived from the resulting height
-  (`1 + (player_height - 80) / 16`) for the HUD/debug display.
+  (`1 + (player_height - 80) / 16`) for the HUD/debug display. If the
+  player walks off an edge (no block underneath, still above ground),
+  collision doesn't teleport them down — it sets `jump = true` with
+  `jumpHeightModifier = 0`, handing off to the same falling arc a jump
+  uses (see below), just with no initial upward boost.
 - Jumping (`obj_camera`'s Step event): a simple arc — `jumpHeightModifier`
   starts at 5.0 on takeoff and decrements by 0.5 every step, added to `z`
   each frame, so it rises then falls on its own. Once `jumpHeightModifier`
