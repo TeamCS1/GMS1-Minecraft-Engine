@@ -90,9 +90,10 @@ z = 32;
     texture_set_repeat(1);
     texture_set_interpolation(0);
     
-    draw_set_alpha_test(1);          
-    draw_set_alpha_test_ref_value(128); 
-    
+    draw_set_alpha_test(1);
+    draw_set_alpha_test_ref_value(128);
+    draw_set_alpha(fade_alpha);
+
     d3d_set_culling(0);
     d3d_set_lighting(1); //enable lighting
     

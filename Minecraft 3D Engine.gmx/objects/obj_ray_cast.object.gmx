@@ -59,6 +59,45 @@ if (mouse_check_button_released(mb_right))
     var block = instance_create(x, y, obj_grass_block);
     block.z = z + z_offset;
 
+    // Record the placement so it persists across chunk unload/reload.
+    var tile_x = x / 32;
+    var tile_y = y / 32;
+    var layer_h = block.z / 32;
+    var height_tier = scr_GetHeightTier(tile_x, tile_y);
+    var edit_key = scr_EncodeBlockKey(tile_x, tile_y, layer_h);
+
+    if (ds_map_exists(global.block_edits, edit_key))
+    {
+        ds_map_replace(global.block_edits, edit_key, obj_grass_block);
+    }
+    else
+    {
+        ds_map_add(global.block_edits, edit_key, obj_grass_block);
+    }
+
+    if (layer_h &gt; height_tier)
+    {
+        // Outside the natural column -- the natural fill loop never
+        // visits this h, so track it separately for scr_GenerateChunk
+        // to re-create on reload.
+        var chunk_cx = floor(tile_x / global.chunk_tiles);
+        var chunk_cy = floor(tile_y / global.chunk_tiles);
+        var chunk_key = scr_EncodeChunkKey(chunk_cx, chunk_cy);
+
+        var extra_list = -1;
+        if (ds_map_exists(global.chunk_extra, chunk_key))
+        {
+            extra_list = ds_map_find_value(global.chunk_extra, chunk_key);
+        }
+        else
+        {
+            extra_list = ds_list_create();
+            ds_map_add(global.chunk_extra, chunk_key, extra_list);
+        }
+
+        ds_list_add(extra_list, edit_key);
+    }
+
     // A newly placed block might bury a neighbor (or itself sit exposed).
     scr_UpdateBuriedAround(x, y, block.z);
 }
@@ -93,10 +132,46 @@ if (instance_exists(target_block))
     var broken_x = target_block.x;
     var broken_y = target_block.y;
     var broken_z = target_block.z;
+    var broken_was_solid = target_block.is_solid;
 
     with (target_block)
     {
         instance_destroy();
+    }
+
+    if (broken_was_solid)
+    {
+        // Record the removal so it persists across chunk unload/reload.
+        // (Decorative blocks like obj_tinted_cross aren't grid-aligned
+        // and aren't tracked -- they regenerate deterministically from
+        // position instead, see scr_GenerateChunk.)
+        var tile_x = broken_x / 32;
+        var tile_y = broken_y / 32;
+        var layer_h = broken_z / 32;
+        var height_tier = scr_GetHeightTier(tile_x, tile_y);
+        var edit_key = scr_EncodeBlockKey(tile_x, tile_y, layer_h);
+
+        if (layer_h &lt;= height_tier)
+        {
+            // A natural-column cell -- mark it removed so regen skips it.
+            if (ds_map_exists(global.block_edits, edit_key))
+            {
+                ds_map_replace(global.block_edits, edit_key, 0);
+            }
+            else
+            {
+                ds_map_add(global.block_edits, edit_key, 0);
+            }
+        }
+        else
+        {
+            // An extra (player-built) block -- forget it entirely, no
+            // "removed" marker needed since it was never natural.
+            if (ds_map_exists(global.block_edits, edit_key))
+            {
+                ds_map_delete(global.block_edits, edit_key);
+            }
+        }
     }
 
     // Destroying a block can expose whatever neighbors it was covering.

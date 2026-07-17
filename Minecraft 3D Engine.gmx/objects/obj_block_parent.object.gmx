@@ -48,6 +48,16 @@ is_buried = false;
 // the Step event below). Child Draw events check this instead of
 // re-deriving their own visibility condition.
 is_visible = true;
+
+// Which chunk this instance belongs to (set by scr_GenerateChunk right
+// after creation) -- scr_UnloadChunk uses this to find exactly the
+// instances to destroy when a chunk goes out of range.
+chunk_cx = 0;
+chunk_cy = 0;
+
+// Ramps from 0 to 1 after spawning (see the Step event) so newly
+// generated/streamed-in blocks fade in instead of popping into view.
+fade_alpha = 0;
 </string>
           </argument>
         </arguments>
@@ -101,6 +111,16 @@ else
 }
 
 is_visible = !is_buried &amp;&amp; in_frustum &amp;&amp; (distance_to_object(obj_camera) &lt; global.renderDistance);
+
+// Fade in newly spawned/streamed-in blocks instead of popping.
+if (fade_alpha &lt; 1)
+{
+    fade_alpha += 0.05;
+    if (fade_alpha &gt; 1)
+    {
+        fade_alpha = 1;
+    }
+}
 </string>
           </argument>
         </arguments>

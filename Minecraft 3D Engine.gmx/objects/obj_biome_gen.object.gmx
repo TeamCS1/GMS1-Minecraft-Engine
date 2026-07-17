@@ -26,201 +26,71 @@
           <argument>
             <kind>1</kind>
             <string>//init chunk
-var layerGrass = instance_create(0, 0, choose(obj_grass_block));
-layerGrass.z = 0;
+//Set up world-gen state once per session. Terrain/biome/decoration are
+//all pure functions of position + these seeds, so any chunk can be
+//(re)generated on demand with no memory of what came before -- that's
+//what makes chunk streaming and effectively-infinite terrain possible.
+global.height_seed_x = random(1000);
+global.height_seed_y = random(1000);
+global.biome_seed_x = random(1000);
+global.biome_seed_y = random(1000);
+global.deco_seed_x = random(1000);
 
-//choose biome
-var biome = choose(obj_grass_block,obj_snow_block);
+global.chunk_tiles = 8;   //chunk size, in 32-unit tiles per side
 
-//mark where the chunk starts
-chunkX = obj_camera.x + 1024; 
-chunkY = obj_camera.y + 1024;
+//key: scr_EncodeBlockKey(tile_x, tile_y, layer_h) -> 0 (removed) or an
+//object_index (placed/overridden). Only ever holds positions that
+//differ from the natural generation, so it stays small.
+global.block_edits = ds_map_create();
 
-var wdt = chunkX / 32;
-var hgt = chunkY / 32;
+//key: scr_EncodeChunkKey(chunk_cx, chunk_cy) -> a ds_list of block-key
+//positions the player placed outside their tile's natural column (e.g.
+//building upward/floating) -- the natural fill loop never visits those
+//positions on its own, so they need to be tracked separately to survive
+//unload/reload.
+global.chunk_extra = ds_map_create();
 
-//random per-run phase offset so hills differ between playthroughs, while
-//staying smooth (neighboring tiles trend together) within a single one
-var height_seed_x = random(1000);
-var height_seed_y = random(1000);
+//key: scr_EncodeChunkKey(chunk_cx, chunk_cy) -> 1 while that chunk
+//currently has instances spawned.
+global.loaded_chunks = ds_map_create();
 
-for (var i = 0; i &lt; wdt; i++)
+last_chunk_cx = floor(obj_camera.x / (global.chunk_tiles * 32));
+last_chunk_cy = floor(obj_camera.y / (global.chunk_tiles * 32));
+
+scr_UpdateLoadedChunks();
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>//Only redo chunk load/unload when the player actually crosses into a
+//new chunk, not every single frame.
+var current_cx = floor(obj_camera.x / (global.chunk_tiles * 32));
+var current_cy = floor(obj_camera.y / (global.chunk_tiles * 32));
+
+if (current_cx != last_chunk_cx || current_cy != last_chunk_cy)
 {
-    var xx = i * 32;
-    for (var j = 0; j &lt; hgt; j++)
-    {
-        var yy = j * 32;
-
-        //smooth, low-frequency height so neighboring tiles form gentle
-        //hills instead of one independent random bump per tile
-        var raw = sin((xx + height_seed_x) * 0.04) + cos((yy + height_seed_y) * 0.04);
-        var height_tier = round(clamp(raw, -1, 1) + 1);   //0, 1, or 2
-
-        //neighbor height tiers, for the analytical burial check below --
-        //missing neighbors (outside the generated area) count as -1 (open)
-        //so edge tiles are never incorrectly marked as buried
-        var tier_w = -1;
-        if (i &gt; 0)
-        {
-            var raw_w = sin((xx - 32 + height_seed_x) * 0.04) + cos((yy + height_seed_y) * 0.04);
-            tier_w = round(clamp(raw_w, -1, 1) + 1);
-        }
-
-        var tier_e = -1;
-        if (i &lt; wdt - 1)
-        {
-            var raw_e = sin((xx + 32 + height_seed_x) * 0.04) + cos((yy + height_seed_y) * 0.04);
-            tier_e = round(clamp(raw_e, -1, 1) + 1);
-        }
-
-        var tier_n = -1;
-        if (j &gt; 0)
-        {
-            var raw_n = sin((xx + height_seed_x) * 0.04) + cos((yy - 32 + height_seed_y) * 0.04);
-            tier_n = round(clamp(raw_n, -1, 1) + 1);
-        }
-
-        var tier_s = -1;
-        if (j &lt; hgt - 1)
-        {
-            var raw_s = sin((xx + height_seed_x) * 0.04) + cos((yy + 32 + height_seed_y) * 0.04);
-            tier_s = round(clamp(raw_s, -1, 1) + 1);
-        }
-
-        //fill the column solid from the ground up to the surface height,
-        //so hills look like solid terrain instead of floating platforms
-        for (var h = 0; h &lt;= height_tier; h++)
-        {
-            var layerRandom = instance_create(xx, yy, biome);
-            layerRandom.z = h * 32;
-
-            //fully surrounded blocks (covered above, and by all 4 side
-            //neighbors at this height) never need to render
-            layerRandom.is_buried = (h &lt; height_tier) &amp;&amp; (tier_w &gt;= h) &amp;&amp; (tier_e &gt;= h) &amp;&amp; (tier_n &gt;= h) &amp;&amp; (tier_s &gt;= h);
-        }
-    }
+    last_chunk_cx = current_cx;
+    last_chunk_cy = current_cy;
+    scr_UpdateLoadedChunks();
 }
-
-var passes = 3;
-var clusterChance = 0.07; // approx 7% chance per pass
-
-for (var pass = 0; pass &lt; passes; pass++)
-{
-    for (var i = 0; i &lt; wdt; i++)
-    {
-        var xx = i * 32;
-        for (var j = 0; j &lt; hgt; j++)
-        {
-            var yy = j * 32;
-
-            if (random(1) &lt; clusterChance)
-            {
-                var base_x = xx + 16;
-                var base_y = yy + 16;
-
-                //sit the decoration on top of this tile's terrain surface
-                //instead of assuming flat z=0 ground
-                var raw = sin((xx + height_seed_x) * 0.04) + cos((yy + height_seed_y) * 0.04);
-                var height_tier = round(clamp(raw, -1, 1) + 1);
-                var deco_z = height_tier * 32 + 32;
-
-                var cluster_type = choose("line_h", "line_v", "L");
-
-                switch (cluster_type)
-                {
-                    case "line_h":
-                        if (instance_position(base_x, base_y, obj_tinted_cross) == noone)
-                        {
-                            var t = instance_create(base_x, base_y, obj_tinted_cross);
-                            t.z = deco_z;
-                        }
-                        if (instance_position(base_x + 32, base_y, obj_tinted_cross) == noone)
-                        {
-                            var t = instance_create(base_x + 32, base_y, obj_tinted_cross);
-                            t.z = deco_z;
-                        }
-                        break;
-
-                    case "line_v":
-                        if (instance_position(base_x, base_y, obj_tinted_cross) == noone)
-                        {
-                            var t = instance_create(base_x, base_y, obj_tinted_cross);
-                            t.z = deco_z;
-                        }
-                        if (instance_position(base_x, base_y + 32, obj_tinted_cross) == noone)
-                        {
-                            var t = instance_create(base_x, base_y + 32, obj_tinted_cross);
-                            t.z = deco_z;
-                        }
-                        break;
-
-                    case "L":
-                        var dir = irandom(3);
-                        if (instance_position(base_x, base_y, obj_tinted_cross) == noone)
-                        {
-                            var t = instance_create(base_x, base_y, obj_tinted_cross);
-                            t.z = deco_z;
-                        }
-                        switch (dir)
-                        {
-                            case 0:
-                                if (instance_position(base_x + 32, base_y, obj_tinted_cross) == noone)
-                                {
-                                    var t = instance_create(base_x + 32, base_y, obj_tinted_cross);
-                                    t.z = deco_z;
-                                }
-                                if (instance_position(base_x, base_y + 32, obj_tinted_cross) == noone)
-                                {
-                                    var t = instance_create(base_x, base_y + 32, obj_tinted_cross);
-                                    t.z = deco_z;
-                                }
-                                break;
-                            case 1:
-                                if (instance_position(base_x - 32, base_y, obj_tinted_cross) == noone)
-                                {
-                                    var t = instance_create(base_x - 32, base_y, obj_tinted_cross);
-                                    t.z = deco_z;
-                                }
-                                if (instance_position(base_x, base_y + 32, obj_tinted_cross) == noone)
-                                {
-                                    var t = instance_create(base_x, base_y + 32, obj_tinted_cross);
-                                    t.z = deco_z;
-                                }
-                                break;
-                            case 2:
-                                if (instance_position(base_x - 32, base_y, obj_tinted_cross) == noone)
-                                {
-                                    var t = instance_create(base_x - 32, base_y, obj_tinted_cross);
-                                    t.z = deco_z;
-                                }
-                                if (instance_position(base_x, base_y - 32, obj_tinted_cross) == noone)
-                                {
-                                    var t = instance_create(base_x, base_y - 32, obj_tinted_cross);
-                                    t.z = deco_z;
-                                }
-                                break;
-                            case 3:
-                                if (instance_position(base_x + 32, base_y, obj_tinted_cross) == noone)
-                                {
-                                    var t = instance_create(base_x + 32, base_y, obj_tinted_cross);
-                                    t.z = deco_z;
-                                }
-                                if (instance_position(base_x, base_y - 32, obj_tinted_cross) == noone)
-                                {
-                                    var t = instance_create(base_x, base_y - 32, obj_tinted_cross);
-                                    t.z = deco_z;
-                                }
-                                break;
-                        }
-                        break;
-                }
-            }
-        }
-    }
-}
-
-
-
 </string>
           </argument>
         </arguments>

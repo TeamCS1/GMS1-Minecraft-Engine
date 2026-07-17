@@ -63,6 +63,13 @@
     <script>scripts\scr_FindSupportHeight.gml</script>
     <script>scripts\scr_IsSolidBlockAt.gml</script>
     <script>scripts\scr_UpdateBuriedAround.gml</script>
+    <script>scripts\scr_GetHeightTier.gml</script>
+    <script>scripts\scr_GetBiome.gml</script>
+    <script>scripts\scr_EncodeBlockKey.gml</script>
+    <script>scripts\scr_EncodeChunkKey.gml</script>
+    <script>scripts\scr_GenerateChunk.gml</script>
+    <script>scripts\scr_UnloadChunk.gml</script>
+    <script>scripts\scr_UpdateLoadedChunks.gml</script>
     <script>scripts\buffer_getpixel.gml</script>
     <script>scripts\buffer_getpixel_a.gml</script>
     <script>scripts\buffer_getpixel_b.gml</script>

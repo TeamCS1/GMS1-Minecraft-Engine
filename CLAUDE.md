@@ -46,24 +46,66 @@ without introducing modern GML syntax.
     only `if distance_to_object(obj_camera) < global.renderDistance`,
     texture via `sprite_get_texture`, and toggle
     `texture_set_interpolation` around the draw call.
-- World/chunk data storage: currently plain object instances; a chunk
-  streaming system is planned — see Roadmap below.
-- Terrain height (`obj_biome_gen`'s Create event): each tile's height
-  tier (0/1/2, i.e. 0/32/64 z) comes from a smooth, low-frequency
-  `sin`/`cos` function of its position, offset by a per-run random seed
-  (`height_seed_x`/`height_seed_y`) — random between playthroughs, but
+- World/chunk streaming: the world is divided into `global.chunk_tiles`
+  (8) x 8-tile chunks. `obj_biome_gen`'s Step event checks the player's
+  current chunk each frame (cheaply — only reacts when it actually
+  changes) and calls `scr_UpdateLoadedChunks()`, which generates any
+  chunk within `global.renderDistance` (+1 chunk buffer) that isn't
+  loaded yet via `scr_GenerateChunk(cx, cy)`, and destroys (via
+  `scr_UnloadChunk`) any loaded chunk now well outside that range (a
+  1-chunk hysteresis margin on the unload distance stops chunks
+  thrashing right at the boundary). Nothing about this assumes a fixed
+  world size — a chunk's contents are entirely a function of its
+  coordinate, so the world is effectively infinite (see the two bullets
+  below).
+- Terrain height/biome are pure functions of position, not stored state:
+  `scr_GetHeightTier(tile_x, tile_y)` returns a tile's height tier (0/1/2,
+  i.e. 0/32/64 z) from a smooth, low-frequency `sin`/`cos` function offset
+  by a per-run random seed (`global.height_seed_x`/`y`, set once by
+  `obj_biome_gen`'s Create event) — random between playthroughs, but
   neighboring tiles trend together into rolling hills rather than
-  independent per-tile spikes. The column is filled solid from `z = 0` up
-  to that tile's tier (one instance per 32-unit step) so hills read as
-  solid ground rather than floating platforms; `scr_FindSupportHeight()`
-  (see Collision below) needed no changes to support this, since it
-  already takes the tallest matching block regardless of elevation. The
-  `obj_tinted_cross` decoration clusters recompute the same height
-  formula for their tile so they sit on top of the terrain surface
-  instead of assuming flat `z=0` ground. Also sets each block's
-  `is_buried` (see Draw-time culling below) analytically from the same
-  height formula applied to its 4 neighbor tiles, so world-gen doesn't
-  need any instance lookups to know which blocks are fully covered.
+  independent per-tile spikes. `scr_GetBiome(chunk_cx, chunk_cy)` picks
+  grass or snow per chunk the same way (`global.biome_seed_x`/`y`). Being
+  pure functions (no instance lookups, same input always gives the same
+  output) is what lets a chunk be generated, destroyed, and regenerated
+  later with identical results, and lets neighbor tiles/chunks be
+  evaluated even before their own chunk has been generated.
+- Chunk generation (`scr_GenerateChunk(chunk_cx, chunk_cy)`): for each
+  tile, fills the column solid from `z = 0` up to `scr_GetHeightTier`'s
+  result (one instance per 32-unit step) so hills read as solid ground
+  rather than floating platforms, and sets each block's `is_buried` (see
+  Draw-time culling below) analytically from the same height formula
+  applied to its 4 neighbor tiles — no instance lookups needed, even
+  across a chunk boundary. Tall-grass decoration placement uses a
+  deterministic position hash (`frac(sin(...) * 43758.5453)`, a
+  standard "pseudo-random from position" trick) instead of `random()`,
+  so the same tile always decides the same way across unload/reload; it
+  sits on top of the tile's terrain surface via the same height formula.
+  After natural generation, re-applies anything recorded in
+  `global.block_edits`/`global.chunk_extra` (see below) so player edits
+  survive a chunk unloading and reloading. Every spawned instance starts
+  at `fade_alpha = 0`, ramping to 1 in `obj_block_parent`'s Step event, so
+  newly streamed-in chunks fade in instead of popping into view.
+- Edit persistence: breaking or placing a block needs to survive its
+  chunk being unloaded and regenerated later, so `obj_ray_cast`'s
+  break/place handlers record every change into `global.block_edits` — a
+  `ds_map` keyed by `scr_EncodeBlockKey(tile_x, tile_y, layer_h)` (a
+  single real number packing the three values via offset+multiply, since
+  GML 1.4 has no `string_split` to unpack a "x,y,z"-style string key) to
+  either `0` (removed) or an object index (placed/overridden type).
+  `scr_GenerateChunk`'s natural-fill loop checks this map for every tile
+  it would otherwise visit, so edits to naturally-generated cells are
+  handled automatically. Placements *outside* the natural column (e.g.
+  building upward past the hill, or floating platforms) are invisible to
+  that loop, so they're also appended to `global.chunk_extra` — a
+  `ds_map` keyed by `scr_EncodeChunkKey` to a `ds_list` of the affected
+  position keys — which `scr_GenerateChunk` replays after the natural
+  pass. Breaking a natural-column block just marks it `0`; breaking an
+  "extra" placement deletes its `block_edits` entry outright, since
+  there's no natural fallback to remember. Decorative blocks
+  (`obj_tinted_cross`) are deliberately **not** tracked this way (they
+  aren't grid-aligned, and their placement is already deterministic-by-
+  position) — breaking one doesn't persist.
 - Block object inheritance: `obj_grass_block`, `obj_sand_block`,
   `obj_snow_block`, and `obj_tinted_cross` are all children of
   `obj_block_parent` (never instantiated directly). The parent defines
@@ -157,14 +199,6 @@ without introducing modern GML syntax.
 
 ## Roadmap (confirmed by project owner)
 
-- World/chunk data model: blocks are currently plain object instances (no
-  `ds_grid`/`ds_map`), located via `instance_nearest`/`with` over each
-  per-block-type object. This will be replaced by an efficient chunking
-  system that streams chunks in/out as the player moves through the
-  world. Planned for the future — more basic issues need fixing first
-  before tackling this.
-- Infinite/streaming world generation is planned (depends on the chunking
-  system above).
 - Sand will become part of random terrain generation (`obj_biome_gen`
   currently only ever chooses grass or snow); a desert biome is planned
   for later.
@@ -195,6 +229,18 @@ without introducing modern GML syntax.
   in the project file but never instantiated anywhere (not in code, not in
   any room) — looks like an abandoned debug HUD for `buffer_getpixel`
   color-picking. Delete alongside `obj_camera_new`, or keep for reference?
+- **Chunk streaming known limitations** (flagging for testing, not asking
+  a design question): the very first `scr_UpdateLoadedChunks()` call (at
+  game start) loads every chunk within render distance synchronously in
+  one event — roughly 80 chunks at the default settings — which may cause
+  a noticeable startup hitch; spreading initial loads across several
+  frames would fix this if it's a problem in practice. `load_radius`/
+  `unload_radius` (in `scr_UpdateLoadedChunks.gml`) are directly tunable
+  if the instance count turns out too heavy. "Infinite" is a practical
+  bound, not literal — `scr_EncodeBlockKey`/`scr_EncodeChunkKey` support
+  positions roughly ±3.2 million units before their packed-key encoding
+  would need larger offset constants, far beyond any realistic play
+  session.
 
 ## TODO
 
