@@ -60,6 +60,7 @@
     <script>scripts\scr_Raycast.gml</script>
     <script>scripts\instance_nth_nearest.gml</script>
     <script>scripts\scr_CollisionHandler.gml</script>
+    <script>scripts\scr_FindSupportHeight.gml</script>
     <script>scripts\buffer_getpixel.gml</script>
     <script>scripts\buffer_getpixel_a.gml</script>
     <script>scripts\buffer_getpixel_b.gml</script>

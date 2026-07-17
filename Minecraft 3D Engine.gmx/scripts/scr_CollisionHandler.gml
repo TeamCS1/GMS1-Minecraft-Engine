@@ -1,30 +1,17 @@
 
 //handle collisions with blocks
 //
-//Instead of one hardcoded z threshold per block type, find the highest
-//solid block (any type, via obj_block_parent) under the player's x/y and
-//derive the height standing on it would give: the block's own top
-//(z + 32) plus the player's 32-unit eye offset above whatever they stand
-//on -- the same offset sand was already tuned to (top 64 -> height 96).
-//This supports any number of stacked layers: a block placed on top of
-//another block (its own z at or above the lower block's top) just
-//produces a taller "support_z", with no extra code needed per layer.
+//scr_FindSupportHeight() finds the standing height the tallest solid
+//block under the player would give (or -1 if none) -- see that script
+//for how blocks of any type/elevation are combined. This just reacts to
+//the result: step up onto it, bump its side, or fall back to flat ground.
 
-var support_z = 80;   //ground level when nothing solid is underneath
-var found_block = false;
+var support_z = scr_FindSupportHeight();
+var found_block = (support_z != -1);
 
-with (obj_block_parent)
+if (!found_block)
 {
-    if (is_solid && other.x >= x + hit_x1 && other.x < x + hit_x1 + 32 && other.y >= y + hit_y1 && other.y < y + hit_y1 + 32)
-    {
-        found_block = true;
-
-        var top = z + 32 + 32;
-        if (top > support_z)
-        {
-            support_z = top;
-        }
-    }
+    support_z = 80;   //ground level when nothing solid is underneath
 }
 
 if (found_block && jump == false)

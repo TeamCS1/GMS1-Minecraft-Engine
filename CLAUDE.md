@@ -74,17 +74,24 @@ without introducing modern GML syntax.
   right-click places a new block there (currently hardcoded to
   `obj_grass_block`).
 - Collision (`scr_CollisionHandler.gml`, called from `obj_camera`'s Step
-  event right after raycasting): finds the highest solid block (any type,
-  via `obj_block_parent`) whose footprint contains the player's x/y, and
-  derives the standing height that block would give — its own top
-  (`z + 32`) plus a fixed 32-unit eye offset (the same offset sand was
-  already tuned to: top 64 -> standing height 96). Falls back to a flat
-  ground baseline of 80 when nothing solid is underneath. This supports
-  any number of stacked layers automatically: a block placed with its own
-  z at or above a lower block's top just produces a taller support
-  height, no per-layer code needed. `global.layer` is derived from the
-  resulting height (`1 + (player_height - 80) / 16`) for the HUD/debug
-  display.
+  event right after raycasting): uses `scr_FindSupportHeight()` to get the
+  standing height the tallest solid block under the player's x/y would
+  give — its own top (`z + 32`) plus a fixed 32-unit eye offset (the same
+  offset sand was already tuned to: top 64 -> standing height 96), or -1
+  if nothing solid is there (collision then falls back to a flat ground
+  baseline of 80). This supports any number of stacked layers
+  automatically: a block placed with its own z at or above a lower
+  block's top just produces a taller support height, no per-layer code
+  needed. `global.layer` is derived from the resulting height
+  (`1 + (player_height - 80) / 16`) for the HUD/debug display.
+- Jumping (`obj_camera`'s Step event): a simple arc — `jumpHeightModifier`
+  starts at 5.0 on takeoff and decrements by 0.5 every step, added to `z`
+  each frame, so it rises then falls on its own. Once `jumpHeightModifier`
+  goes negative (falling), each frame re-calls `scr_FindSupportHeight()`
+  and lands as soon as `z` reaches that height — the *current* surface
+  underneath, not necessarily the one the jump started from. This is what
+  lets a jump land on a new, taller layer reached mid-arc instead of
+  always falling back to the takeoff height.
 
 ## Code style (observed conventions)
 

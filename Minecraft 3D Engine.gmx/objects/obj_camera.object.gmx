@@ -152,10 +152,22 @@ if (jump) {
     z += jumpHeightModifier;
     jumpHeightModifier -= 0.5;
 
-    if (z &lt;= player_height) {
-        z = player_height;
-        jumpHeightModifier = 0;
-        jump = false;
+    if (jumpHeightModifier &lt; 0) {
+        // Falling: land on whatever solid surface is actually underneath
+        // right now (via scr_FindSupportHeight), not just the height this
+        // jump started from -- this lets a jump land on a new, taller
+        // layer reached mid-arc, not only fall back to the starting spot.
+        var landing_z = scr_FindSupportHeight();
+        if (landing_z == -1) {
+            landing_z = 80;
+        }
+
+        if (z &lt;= landing_z) {
+            z = landing_z;
+            player_height = landing_z;
+            jumpHeightModifier = 0;
+            jump = false;
+        }
     }
 }
 
