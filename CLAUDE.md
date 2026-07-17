@@ -83,11 +83,17 @@ without introducing modern GML syntax.
   automatically: a block placed with its own z at or above a lower
   block's top just produces a taller support height, no per-layer code
   needed. `global.layer` is derived from the resulting height
-  (`1 + (player_height - 80) / 16`) for the HUD/debug display. If the
-  player walks off an edge (no block underneath, still above ground),
-  collision doesn't teleport them down — it sets `jump = true` with
-  `jumpHeightModifier = 0`, handing off to the same falling arc a jump
-  uses (see below), just with no initial upward boost.
+  (`1 + (player_height - 80) / 16`) for the HUD/debug display.
+  `scr_FindSupportHeight()` matches purely by x/y footprint, with no
+  regard for how far below/above the player that block actually is, so
+  collision reacts based on the gap to the player's current z rather than
+  just "was a block found": `z < support_z` bumps (a taller block's
+  side); `z - support_z > 32` means whatever matched is too far below to
+  be considered underfoot, so it starts falling (`jump = true`,
+  `jumpHeightModifier = 0`, handing off to the same arc a real jump uses,
+  just with no initial upward boost) instead of teleporting down; anything
+  closer snaps directly onto it. This is what makes walking off a tall
+  stack fall naturally instead of jumping straight to the block below.
 - Jumping (`obj_camera`'s Step event): a simple arc — `jumpHeightModifier`
   starts at 5.0 on takeoff and decrements by 0.5 every step, added to `z`
   each frame, so it rises then falls on its own. Once `jumpHeightModifier`
