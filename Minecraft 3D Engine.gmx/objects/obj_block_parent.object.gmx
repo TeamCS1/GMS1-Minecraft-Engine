@@ -36,6 +36,60 @@ hit_y1 = 0;
 // Whether the player can stand on/collide with this block at all.
 // Decorative blocks (e.g. obj_tinted_cross) override this to false.
 is_solid = true;
+
+// Whether this block is fully enclosed by solid neighbors on all 6
+// sides, so it can never actually be seen. Not recomputed every frame
+// (too slow) -- obj_biome_gen sets it analytically at world-gen time,
+// and scr_UpdateBuriedAround keeps it correct when blocks are placed or
+// broken during play.
+is_buried = false;
+
+// Combines is_buried with a per-frame distance + view-cone check (see
+// the Step event below). Child Draw events check this instead of
+// re-deriving their own visibility condition.
+is_visible = true;
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>// Cheap per-frame visibility check: distance + a generous horizontal
+// view-cone (frustum) test against the camera's actual look direction
+// (facingDir), so blocks well behind the player skip drawing entirely.
+// is_buried is NOT recomputed here -- see the Create event comment.
+var in_frustum = false;
+
+var to_x = x - obj_camera.x;
+var to_y = y - obj_camera.y;
+
+if (point_distance(0, 0, to_x, to_y) &lt; 1)
+{
+    in_frustum = true;   //essentially on top of the camera
+}
+else
+{
+    var angle_to_block = point_direction(0, 0, to_x, to_y);
+    in_frustum = (abs(angle_difference(angle_to_block, obj_camera.facingDir)) &lt; 100);
+}
+
+is_visible = !is_buried &amp;&amp; in_frustum &amp;&amp; (distance_to_object(obj_camera) &lt; global.renderDistance);
 </string>
           </argument>
         </arguments>

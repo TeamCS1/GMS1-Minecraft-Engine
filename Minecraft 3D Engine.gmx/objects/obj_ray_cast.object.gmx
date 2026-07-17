@@ -58,6 +58,9 @@ if (mouse_check_button_released(mb_right))
 {
     var block = instance_create(x, y, obj_grass_block);
     block.z = z + z_offset;
+
+    // A newly placed block might bury a neighbor (or itself sit exposed).
+    scr_UpdateBuriedAround(x, y, block.z);
 }
 
     
@@ -87,10 +90,17 @@ if (mouse_check_button_released(mb_right))
 // when this reticle was spawned), instead of re-searching by distance.
 if (instance_exists(target_block))
 {
+    var broken_x = target_block.x;
+    var broken_y = target_block.y;
+    var broken_z = target_block.z;
+
     with (target_block)
     {
         instance_destroy();
     }
+
+    // Destroying a block can expose whatever neighbors it was covering.
+    scr_UpdateBuriedAround(broken_x, broken_y, broken_z);
 }
 
 </string>

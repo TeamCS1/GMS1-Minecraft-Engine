@@ -60,7 +60,10 @@ without introducing modern GML syntax.
   already takes the tallest matching block regardless of elevation. The
   `obj_tinted_cross` decoration clusters recompute the same height
   formula for their tile so they sit on top of the terrain surface
-  instead of assuming flat `z=0` ground.
+  instead of assuming flat `z=0` ground. Also sets each block's
+  `is_buried` (see Draw-time culling below) analytically from the same
+  height formula applied to its 4 neighbor tiles, so world-gen doesn't
+  need any instance lookups to know which blocks are fully covered.
 - Block object inheritance: `obj_grass_block`, `obj_sand_block`,
   `obj_snow_block`, and `obj_tinted_cross` are all children of
   `obj_block_parent` (never instantiated directly). The parent defines
@@ -72,11 +75,30 @@ without introducing modern GML syntax.
   Any code that needs to test "is this any kind of block" (raycasting,
   collision) should use a single `with (obj_block_parent)` check —
   GameMaker's `with` automatically includes child instances — instead of
-  one check per block type. Child Create events must call
-  `event_inherited()` first so the parent's defaults run. Adding a new
-  block type means parenting it to `obj_block_parent` (and setting
+  one check per block type. Child Create/Step events must call
+  `event_inherited()` first so the parent's defaults/logic run. Adding a
+  new block type means parenting it to `obj_block_parent` (and setting
   `hit_x1`/`hit_y1`/`is_solid` if they differ from the defaults); no other
   script needs to change.
+- Draw-time culling (`obj_block_parent`'s Step event, plus `is_buried`
+  set elsewhere — see below): each child's Draw event checks a single
+  `is_visible` flag instead of re-deriving its own condition.
+  `is_visible` combines three things, recomputed every frame in the
+  parent's Step event: distance (`distance_to_object(obj_camera) <
+  global.renderDistance`, as before), a generous 100-degree horizontal
+  view-cone check against `obj_camera.facingDir` (frustum culling — skips
+  blocks well behind the player), and `!is_buried`. `is_buried` means
+  "fully enclosed by solid neighbors on all 6 sides, so it can never
+  actually be seen" and is deliberately *not* recomputed every frame
+  (checking 6 neighbors per block per frame would be far too slow) —
+  instead it's maintained two ways: `obj_biome_gen` computes it
+  analytically at world-gen time (cheap, since terrain height is a pure
+  function of position — no instance lookups needed, just re-evaluating
+  the same height formula for each neighbor tile), and
+  `scr_UpdateBuriedAround(cx, cy, cz)` recomputes it via an actual
+  instance scan (`scr_IsSolidBlockAt`) for the handful of blocks touching
+  a given cell whenever `obj_ray_cast` places or breaks a block — cheap
+  enough since that only runs on player action, not every frame.
 - Raycasting/interaction (`scr_Raycast.gml`, called from `obj_camera`'s Step
   event): marches a ray from the camera's eye position along the actual
   look vector (`lookx`/`looky`/`lookz`, derived from `facingDir`/`zdir`)
@@ -125,8 +147,8 @@ without introducing modern GML syntax.
 - Block/grid alignment uses `move_snap(32, 32)` on create; block size is
   32 units unless stated otherwise.
 - Child objects call `event_inherited();` as the first line of any event
-  they share with `obj_block_parent` (currently just Create), so the
-  parent's shared initialization actually runs.
+  they share with `obj_block_parent` (currently Create and Step), so the
+  parent's shared initialization/logic actually runs.
 
 ## Roadmap (confirmed by project owner)
 

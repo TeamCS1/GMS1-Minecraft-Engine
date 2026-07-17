@@ -56,12 +56,47 @@ for (var i = 0; i &lt; wdt; i++)
         var raw = sin((xx + height_seed_x) * 0.04) + cos((yy + height_seed_y) * 0.04);
         var height_tier = round(clamp(raw, -1, 1) + 1);   //0, 1, or 2
 
+        //neighbor height tiers, for the analytical burial check below --
+        //missing neighbors (outside the generated area) count as -1 (open)
+        //so edge tiles are never incorrectly marked as buried
+        var tier_w = -1;
+        if (i &gt; 0)
+        {
+            var raw_w = sin((xx - 32 + height_seed_x) * 0.04) + cos((yy + height_seed_y) * 0.04);
+            tier_w = round(clamp(raw_w, -1, 1) + 1);
+        }
+
+        var tier_e = -1;
+        if (i &lt; wdt - 1)
+        {
+            var raw_e = sin((xx + 32 + height_seed_x) * 0.04) + cos((yy + height_seed_y) * 0.04);
+            tier_e = round(clamp(raw_e, -1, 1) + 1);
+        }
+
+        var tier_n = -1;
+        if (j &gt; 0)
+        {
+            var raw_n = sin((xx + height_seed_x) * 0.04) + cos((yy - 32 + height_seed_y) * 0.04);
+            tier_n = round(clamp(raw_n, -1, 1) + 1);
+        }
+
+        var tier_s = -1;
+        if (j &lt; hgt - 1)
+        {
+            var raw_s = sin((xx + height_seed_x) * 0.04) + cos((yy + 32 + height_seed_y) * 0.04);
+            tier_s = round(clamp(raw_s, -1, 1) + 1);
+        }
+
         //fill the column solid from the ground up to the surface height,
         //so hills look like solid terrain instead of floating platforms
         for (var h = 0; h &lt;= height_tier; h++)
         {
             var layerRandom = instance_create(xx, yy, biome);
             layerRandom.z = h * 32;
+
+            //fully surrounded blocks (covered above, and by all 4 side
+            //neighbors at this height) never need to render
+            layerRandom.is_buried = (h &lt; height_tier) &amp;&amp; (tier_w &gt;= h) &amp;&amp; (tier_e &gt;= h) &amp;&amp; (tier_n &gt;= h) &amp;&amp; (tier_s &gt;= h);
         }
     }
 }
