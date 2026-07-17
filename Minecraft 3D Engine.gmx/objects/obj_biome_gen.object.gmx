@@ -38,14 +38,31 @@ chunkY = obj_camera.y + 1024;
 
 var wdt = chunkX / 32;
 var hgt = chunkY / 32;
+
+//random per-run phase offset so hills differ between playthroughs, while
+//staying smooth (neighboring tiles trend together) within a single one
+var height_seed_x = random(1000);
+var height_seed_y = random(1000);
+
 for (var i = 0; i &lt; wdt; i++)
 {
     var xx = i * 32;
     for (var j = 0; j &lt; hgt; j++)
     {
         var yy = j * 32;
-        var layerRandom = instance_create(xx, yy, biome);
-        layerRandom.z = choose(0)
+
+        //smooth, low-frequency height so neighboring tiles form gentle
+        //hills instead of one independent random bump per tile
+        var raw = sin((xx + height_seed_x) * 0.04) + cos((yy + height_seed_y) * 0.04);
+        var height_tier = round(clamp(raw, -1, 1) + 1);   //0, 1, or 2
+
+        //fill the column solid from the ground up to the surface height,
+        //so hills look like solid terrain instead of floating platforms
+        for (var h = 0; h &lt;= height_tier; h++)
+        {
+            var layerRandom = instance_create(xx, yy, biome);
+            layerRandom.z = h * 32;
+        }
     }
 }
 
@@ -66,53 +83,98 @@ for (var pass = 0; pass &lt; passes; pass++)
                 var base_x = xx + 16;
                 var base_y = yy + 16;
 
+                //sit the decoration on top of this tile's terrain surface
+                //instead of assuming flat z=0 ground
+                var raw = sin((xx + height_seed_x) * 0.04) + cos((yy + height_seed_y) * 0.04);
+                var height_tier = round(clamp(raw, -1, 1) + 1);
+                var deco_z = height_tier * 32 + 32;
+
                 var cluster_type = choose("line_h", "line_v", "L");
 
                 switch (cluster_type)
                 {
                     case "line_h":
                         if (instance_position(base_x, base_y, obj_tinted_cross) == noone)
-                            instance_create(base_x, base_y, obj_tinted_cross);
+                        {
+                            var t = instance_create(base_x, base_y, obj_tinted_cross);
+                            t.z = deco_z;
+                        }
                         if (instance_position(base_x + 32, base_y, obj_tinted_cross) == noone)
-                            instance_create(base_x + 32, base_y, obj_tinted_cross);
+                        {
+                            var t = instance_create(base_x + 32, base_y, obj_tinted_cross);
+                            t.z = deco_z;
+                        }
                         break;
 
                     case "line_v":
                         if (instance_position(base_x, base_y, obj_tinted_cross) == noone)
-                            instance_create(base_x, base_y, obj_tinted_cross);
+                        {
+                            var t = instance_create(base_x, base_y, obj_tinted_cross);
+                            t.z = deco_z;
+                        }
                         if (instance_position(base_x, base_y + 32, obj_tinted_cross) == noone)
-                            instance_create(base_x, base_y + 32, obj_tinted_cross);
+                        {
+                            var t = instance_create(base_x, base_y + 32, obj_tinted_cross);
+                            t.z = deco_z;
+                        }
                         break;
 
                     case "L":
                         var dir = irandom(3);
                         if (instance_position(base_x, base_y, obj_tinted_cross) == noone)
-                            instance_create(base_x, base_y, obj_tinted_cross);
+                        {
+                            var t = instance_create(base_x, base_y, obj_tinted_cross);
+                            t.z = deco_z;
+                        }
                         switch (dir)
                         {
                             case 0:
                                 if (instance_position(base_x + 32, base_y, obj_tinted_cross) == noone)
-                                    instance_create(base_x + 32, base_y, obj_tinted_cross);
+                                {
+                                    var t = instance_create(base_x + 32, base_y, obj_tinted_cross);
+                                    t.z = deco_z;
+                                }
                                 if (instance_position(base_x, base_y + 32, obj_tinted_cross) == noone)
-                                    instance_create(base_x, base_y + 32, obj_tinted_cross);
+                                {
+                                    var t = instance_create(base_x, base_y + 32, obj_tinted_cross);
+                                    t.z = deco_z;
+                                }
                                 break;
                             case 1:
                                 if (instance_position(base_x - 32, base_y, obj_tinted_cross) == noone)
-                                    instance_create(base_x - 32, base_y, obj_tinted_cross);
+                                {
+                                    var t = instance_create(base_x - 32, base_y, obj_tinted_cross);
+                                    t.z = deco_z;
+                                }
                                 if (instance_position(base_x, base_y + 32, obj_tinted_cross) == noone)
-                                    instance_create(base_x, base_y + 32, obj_tinted_cross);
+                                {
+                                    var t = instance_create(base_x, base_y + 32, obj_tinted_cross);
+                                    t.z = deco_z;
+                                }
                                 break;
                             case 2:
                                 if (instance_position(base_x - 32, base_y, obj_tinted_cross) == noone)
-                                    instance_create(base_x - 32, base_y, obj_tinted_cross);
+                                {
+                                    var t = instance_create(base_x - 32, base_y, obj_tinted_cross);
+                                    t.z = deco_z;
+                                }
                                 if (instance_position(base_x, base_y - 32, obj_tinted_cross) == noone)
-                                    instance_create(base_x, base_y - 32, obj_tinted_cross);
+                                {
+                                    var t = instance_create(base_x, base_y - 32, obj_tinted_cross);
+                                    t.z = deco_z;
+                                }
                                 break;
                             case 3:
                                 if (instance_position(base_x + 32, base_y, obj_tinted_cross) == noone)
-                                    instance_create(base_x + 32, base_y, obj_tinted_cross);
+                                {
+                                    var t = instance_create(base_x + 32, base_y, obj_tinted_cross);
+                                    t.z = deco_z;
+                                }
                                 if (instance_position(base_x, base_y - 32, obj_tinted_cross) == noone)
-                                    instance_create(base_x, base_y - 32, obj_tinted_cross);
+                                {
+                                    var t = instance_create(base_x, base_y - 32, obj_tinted_cross);
+                                    t.z = deco_z;
+                                }
                                 break;
                         }
                         break;

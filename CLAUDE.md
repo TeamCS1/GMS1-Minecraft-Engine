@@ -48,6 +48,19 @@ without introducing modern GML syntax.
     `texture_set_interpolation` around the draw call.
 - World/chunk data storage: currently plain object instances; a chunk
   streaming system is planned — see Roadmap below.
+- Terrain height (`obj_biome_gen`'s Create event): each tile's height
+  tier (0/1/2, i.e. 0/32/64 z) comes from a smooth, low-frequency
+  `sin`/`cos` function of its position, offset by a per-run random seed
+  (`height_seed_x`/`height_seed_y`) — random between playthroughs, but
+  neighboring tiles trend together into rolling hills rather than
+  independent per-tile spikes. The column is filled solid from `z = 0` up
+  to that tile's tier (one instance per 32-unit step) so hills read as
+  solid ground rather than floating platforms; `scr_FindSupportHeight()`
+  (see Collision below) needed no changes to support this, since it
+  already takes the tallest matching block regardless of elevation. The
+  `obj_tinted_cross` decoration clusters recompute the same height
+  formula for their tile so they sit on top of the terrain surface
+  instead of assuming flat `z=0` ground.
 - Block object inheritance: `obj_grass_block`, `obj_sand_block`,
   `obj_snow_block`, and `obj_tinted_cross` are all children of
   `obj_block_parent` (never instantiated directly). The parent defines
