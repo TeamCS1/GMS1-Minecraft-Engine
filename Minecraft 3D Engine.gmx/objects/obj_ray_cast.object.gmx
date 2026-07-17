@@ -51,30 +51,16 @@ move_snap(32,32);
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>//Choose block to create based on the selected hotbar slot
-//(global.slots, already set by number keys 1/2/3 in obj_hud).
-var block_type = obj_grass_block;
+            <string>//Choose block to create TODO: allow selection of blocks
 
-switch (global.slots)
-{
-    case 0:
-        block_type = obj_grass_block;
-        break;
-    case 1:
-        block_type = obj_sand_block;
-        break;
-    case 2:
-        block_type = obj_snow_block;
-        break;
-}
 
 if (mouse_check_button_released(mb_right))
 {
-    var block = instance_create(x, y, block_type);
+    var block = instance_create(x, y, obj_grass_block);
     block.z = z + z_offset;
 }
 
-
+    
 </string>
           </argument>
         </arguments>

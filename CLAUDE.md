@@ -71,9 +71,8 @@ without introducing modern GML syntax.
   hit box (see above). On a hit, `obj_ray_cast` is spawned at the last
   empty cell before the hit block, with `target_block` set to the exact
   instance that was hit — left-click destroys `target_block` directly,
-  right-click places a new block there, with the type chosen by
-  `global.slots` (0 = grass, 1 = sand, 2 = snow, anything else falls back
-  to grass since there's no inventory yet — see Roadmap).
+  right-click places a new block there (currently hardcoded to
+  `obj_grass_block`).
 - Collision (`scr_CollisionHandler.gml`, called from `obj_camera`'s Step
   event right after raycasting): uses `scr_FindSupportHeight()` to get the
   standing height the tallest solid block under the player's x/y would
@@ -135,11 +134,9 @@ without introducing modern GML syntax.
   needed on it for now.
 - `rm_gen` is reserved for world-gen seeds and starting parameters for
   future terrain generation. Leave it empty/untouched for now.
-- Hotbar/inventory: `global.slots` (set by keys 1-9 in `obj_hud`) drives
-  the HUD highlight and, as of the placement-type fix above, which block
-  type gets placed for slots 0-2. A real inventory system (item counts,
-  more than 3 placeable types, other slots doing something) is still
-  planned but not being worked on yet.
+- Hotbar/inventory (`global.slots` currently only drives the HUD
+  highlight, nothing consumes it) is planned but not being worked on yet
+  — leave as-is.
 - Block collision now generalizes to every solid block type (grass/sand/
   snow) via `obj_block_parent`, with support for stacked multi-elevation
   layers derived from each block's own z — see Architecture. Owner
@@ -151,6 +148,9 @@ without introducing modern GML syntax.
 
 ## Open questions
 
+- **Block placement type selection**: `obj_ray_cast`'s right-click handler
+  still has `// TODO: allow selection of blocks` and always places
+  `obj_grass_block`. Wire to `global.slots` once there's a real inventory?
 - **Orphaned `backup` object**: `objects/backup.object.gmx` is registered
   in the project file but never instantiated anywhere (not in code, not in
   any room) — looks like an abandoned debug HUD for `buffer_getpixel`
