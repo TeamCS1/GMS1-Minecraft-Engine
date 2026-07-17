@@ -64,6 +64,8 @@ with obj_camera
             var place_z = floor(prev_z / 32) * 32;
             var new_ray = instance_create(prev_x, prev_y, obj_ray_cast);
             new_ray.z_offset = (place_z - 32) + z_scroll_offset;
+
+            directionText = object_get_name(hit_block.object_index);
         }
     }
 

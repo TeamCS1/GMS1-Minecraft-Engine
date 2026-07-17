@@ -105,8 +105,3 @@ without introducing modern GML syntax.
 ## TODO
 
 - Delete the dead `obj_camera_new` object (superseded by `obj_camera`).
-- `obj_camera`'s `directionText` variable is no longer set anywhere after
-  the raycasting rewrite (it used to be set per cardinal-direction branch
-  in `scr_Raycast.gml`). `obj_hud` still displays it — decide whether to
-  repurpose it (e.g. show the hit block's object type) or remove that HUD
-  line.
