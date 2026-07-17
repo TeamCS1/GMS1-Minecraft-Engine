@@ -81,6 +81,7 @@
     <object>objects\obj_hud</object>
     <object>objects\obj_torch</object>
     <objects name="Blocks">
+      <object>objects\obj_block_parent</object>
       <object>objects\obj_grass_block</object>
       <object>objects\obj_sand_block</object>
       <object>objects\obj_snow_block</object>

@@ -30,38 +30,13 @@ with obj_camera
             ray_z += lookz * step;
             dist += step;
 
-            with (obj_grass_block)
+            // obj_block_parent covers every block type (grass/sand/snow/tinted_cross,
+            // and any future block parented to it) in one check. hit_x1/hit_y1 is
+            // each type's own near-corner offset, so cube blocks and the centered
+            // tinted_cross decoration both work without special-casing here.
+            with (obj_block_parent)
             {
-                if (ray_x >= x && ray_x < x + 32 && ray_y >= y && ray_y < y + 32 && ray_z >= z && ray_z < z + 32)
-                {
-                    hit_block = id;
-                }
-            }
-
-            if (hit_block == noone)
-            with (obj_sand_block)
-            {
-                if (ray_x >= x && ray_x < x + 32 && ray_y >= y && ray_y < y + 32 && ray_z >= z && ray_z < z + 32)
-                {
-                    hit_block = id;
-                }
-            }
-
-            if (hit_block == noone)
-            with (obj_snow_block)
-            {
-                if (ray_x >= x && ray_x < x + 32 && ray_y >= y && ray_y < y + 32 && ray_z >= z && ray_z < z + 32)
-                {
-                    hit_block = id;
-                }
-            }
-
-            // Tall grass decoration: centered on its own x/y instead of a corner,
-            // so its box is offset by half a cell.
-            if (hit_block == noone)
-            with (obj_tinted_cross)
-            {
-                if (ray_x >= x - 16 && ray_x < x + 16 && ray_y >= y - 16 && ray_y < y + 16 && ray_z >= z && ray_z < z + 32)
+                if (hit_block == noone && ray_x >= x + hit_x1 && ray_x < x + hit_x1 + 32 && ray_y >= y + hit_y1 && ray_y < y + hit_y1 + 32 && ray_z >= z && ray_z < z + 32)
                 {
                     hit_block = id;
                 }
