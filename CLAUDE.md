@@ -48,6 +48,15 @@ without introducing modern GML syntax.
     `texture_set_interpolation` around the draw call.
 - World/chunk data storage: TBD — **open question for the project owner**,
   see below.
+- Raycasting/interaction (`scr_Raycast.gml`, called from `obj_camera`'s Step
+  event): marches a ray from the camera's eye position along the actual
+  look vector (`lookx`/`looky`/`lookz`, derived from `facingDir`/`zdir`)
+  in fixed steps, testing each sample point against grass/sand/snow block
+  bounding boxes. On a hit, `obj_ray_cast` is spawned at the last empty
+  cell before the hit block — left-click breaks the nearest block to that
+  reticle (`obj_ray_cast`'s own collision event, checks all 4 block types
+  including `obj_tinted_cross`), right-click places a new block there
+  (currently hardcoded to `obj_grass_block`).
 
 ## Code style (observed conventions)
 
@@ -58,15 +67,46 @@ without introducing modern GML syntax.
 - Block/grid alignment uses `move_snap(32, 32)` on create; block size is
   32 units unless stated otherwise.
 
+## Roadmap (confirmed by project owner)
+
+- Infinite/streaming world generation is planned. Blocks are currently
+  plain object instances (no `ds_grid`/`ds_map`), which likely won't scale
+  to streaming — see the open world/chunk data model question below.
+- Sand will become part of random terrain generation (`obj_biome_gen`
+  currently only ever chooses grass or snow); a desert biome is planned
+  for later.
+
 ## Open questions
 
-- **World/chunk data model**: how is block data actually stored? The
-  raycasting script (`scr_Raycast.gml`) currently locates nearby blocks
-  via `instance_nearest` on per-block-type object instances (e.g.
-  `obj_grass_block`, `obj_sand_block`), not a `ds_grid`/`ds_map`. Confirm
-  whether this instance-based approach is the intended long-term model,
-  or whether a chunk/grid data structure is planned. (Owner to answer.)
+- **World/chunk data model**: how will block data be stored once
+  infinite/streaming generation is built? Confirm whether the
+  instance-based approach (`instance_nearest`/`with` over per-block-type
+  objects) will be replaced by a chunk/grid data structure. (Owner to
+  answer.)
+- **Block placement type selection**: `obj_ray_cast`'s right-click handler
+  still has `// TODO: allow selection of blocks` and always places
+  `obj_grass_block`. Wire to `global.slots` once there's a real inventory?
+- **Block collision**: `scr_CollisionHandler.gml` only has step-up logic
+  for `obj_sand_block` (z 80/96). Grass/snow blocks have no collision at
+  all. Should collision generalize to all block types?
+- **Hotbar/inventory**: number keys change `global.slots` (hotbar
+  highlight) but nothing consumes that value yet. Is a real inventory
+  system planned?
+- **`obj_torch`**: has no visible mesh; it only toggles a point light that
+  follows the camera's x/y. Is a placeable/visible torch planned?
+- **`rm_gen` room**: exists with zero instances placed and isn't reachable
+  from anything in code (`rm_water` is the start room and does everything).
+  Leftover test room, or a planned second area?
+- **Orphaned `backup` object**: `objects/backup.object.gmx` is registered
+  in the project file but never instantiated anywhere (not in code, not in
+  any room) — looks like an abandoned debug HUD for `buffer_getpixel`
+  color-picking. Delete alongside `obj_camera_new`, or keep for reference?
 
 ## TODO
 
 - Delete the dead `obj_camera_new` object (superseded by `obj_camera`).
+- `obj_camera`'s `directionText` variable is no longer set anywhere after
+  the raycasting rewrite (it used to be set per cardinal-direction branch
+  in `scr_Raycast.gml`). `obj_hud` still displays it — decide whether to
+  repurpose it (e.g. show the hit block's object type) or remove that HUD
+  line.

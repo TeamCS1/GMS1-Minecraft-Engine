@@ -2,80 +2,68 @@ with obj_camera
 {
     if instance_number(obj_ray_cast) < 1
     {
-        var nearest_block = noone;
-        var closest_dist = 999999;
+        // March a ray from the eye along the actual look vector (lookx/looky/lookz,
+        // computed each step from facingDir/zdir) instead of guessing a cardinal
+        // direction from movement heading.
+        var reach = 160;  // max interaction distance (5 blocks)
+        var step = 8;     // smaller than block size (32) so hits aren't skipped
 
-        // Check grass block
-        var g = instance_nearest(x, y, obj_grass_block);
-        if (g != noone)
+        var ray_x = x;
+        var ray_y = y;
+        var ray_z = z;
+
+        var prev_x = ray_x;
+        var prev_y = ray_y;
+        var prev_z = ray_z;
+
+        var hit_block = noone;
+        var dist = 0;
+
+        while (dist < reach && hit_block == noone)
         {
-            var dist = point_distance(x, y, g.x, g.y);
-            if (dist < closest_dist)
+            prev_x = ray_x;
+            prev_y = ray_y;
+            prev_z = ray_z;
+
+            ray_x += lookx * step;
+            ray_y += looky * step;
+            ray_z += lookz * step;
+            dist += step;
+
+            with (obj_grass_block)
             {
-                closest_dist = dist;
-                nearest_block = g;
+                if (ray_x >= x && ray_x < x + 32 && ray_y >= y && ray_y < y + 32 && ray_z >= z && ray_z < z + 32)
+                {
+                    hit_block = id;
+                }
+            }
+
+            if (hit_block == noone)
+            with (obj_sand_block)
+            {
+                if (ray_x >= x && ray_x < x + 32 && ray_y >= y && ray_y < y + 32 && ray_z >= z && ray_z < z + 32)
+                {
+                    hit_block = id;
+                }
+            }
+
+            if (hit_block == noone)
+            with (obj_snow_block)
+            {
+                if (ray_x >= x && ray_x < x + 32 && ray_y >= y && ray_y < y + 32 && ray_z >= z && ray_z < z + 32)
+                {
+                    hit_block = id;
+                }
             }
         }
 
-        // Check sand block
-        var s = instance_nearest(x, y, obj_sand_block);
-        if (s != noone)
+        if (hit_block != noone)
         {
-            var dist = point_distance(x, y, s.x, s.y);
-            if (dist < closest_dist)
-            {
-                closest_dist = dist;
-                nearest_block = s;
-            }
-        }
-
-        // Check snow block
-        var sn = instance_nearest(x, y, obj_snow_block);
-        if (sn != noone)
-        {
-            var dist = point_distance(x, y, sn.x, sn.y);
-            if (dist < closest_dist)
-            {
-                closest_dist = dist;
-                nearest_block = sn;
-            }
-        }
-
-        if (nearest_block != noone && closest_dist < 64)
-        {
-            var ex = nearest_block.x;
-            var ey = nearest_block.y;
-
-            if direction >= 0 && direction < 45  // East
-            {
-                directionText = "East";
-                var new_ray = instance_create(ex + 64, ey, obj_ray_cast);
-                new_ray.z_offset = z_scroll_offset;
-            }
-            else if direction >= 45 && direction < 135  // North
-            {
-                directionText = "North";
-                var new_ray = instance_create(ex, ey - 64, obj_ray_cast);
-                new_ray.z_offset = z_scroll_offset;
-            }
-            else if direction >= 135 && direction < 225  // West
-            {
-                directionText = "West";
-                var new_ray = instance_create(ex - 64, ey, obj_ray_cast);
-                new_ray.z_offset = z_scroll_offset;
-            }
-            else if direction >= 225 && direction < 315  // South
-            {
-                directionText = "South";
-                var new_ray = instance_create(ex, ey + 64, obj_ray_cast);
-                new_ray.z_offset = z_scroll_offset;
-            }
-            else if direction >= 315 && direction <= 360  // East (wrap around)
-            {
-                directionText = "East";
-                var new_ray = instance_create(ex + 64, ey, obj_ray_cast);
-                new_ray.z_offset = z_scroll_offset;
-            }
+            // Place the reticle at the last empty cell before the hit, so
+            // breaking targets hit_block and placing adds an adjacent block.
+            var place_z = floor(prev_z / 32) * 32;
+            var new_ray = instance_create(prev_x, prev_y, obj_ray_cast);
+            new_ray.z_offset = (place_z - 32) + z_scroll_offset;
         }
     }
 
