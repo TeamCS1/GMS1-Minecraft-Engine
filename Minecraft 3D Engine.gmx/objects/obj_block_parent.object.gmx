@@ -70,23 +70,34 @@ is_visible = true;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>// Cheap per-frame visibility check: distance + a generous horizontal
-// view-cone (frustum) test against the camera's actual look direction
-// (facingDir), so blocks well behind the player skip drawing entirely.
-// is_buried is NOT recomputed here -- see the Create event comment.
+            <string>// Cheap per-frame visibility check: distance + a generous view-cone
+// (frustum) test against the camera's actual 3D look vector (lookx/
+// looky/lookz -- the same one raycasting uses), so blocks well outside
+// where the camera is pointing skip drawing entirely. This has to be a
+// true 3D cone, not just a horizontal angle check against facingDir --
+// a horizontal-only check stays a narrow wedge even when looking
+// straight down, wrongly culling everything not directly in that
+// horizontal direction even though looking down actually reveals a wide
+// disc all around the player. is_buried is NOT recomputed here -- see
+// the Create event comment.
 var in_frustum = false;
 
 var to_x = x - obj_camera.x;
 var to_y = y - obj_camera.y;
+var to_z = z - obj_camera.z;
+var to_len = point_distance_3d(0, 0, 0, to_x, to_y, to_z);
 
-if (point_distance(0, 0, to_x, to_y) &lt; 1)
+if (to_len &lt; 1)
 {
     in_frustum = true;   //essentially on top of the camera
 }
 else
 {
-    var angle_to_block = point_direction(0, 0, to_x, to_y);
-    in_frustum = (abs(angle_difference(angle_to_block, obj_camera.facingDir)) &lt; 100);
+    var look_len = point_distance_3d(0, 0, 0, obj_camera.lookx, obj_camera.looky, obj_camera.lookz);
+    var dot = to_x * obj_camera.lookx + to_y * obj_camera.looky + to_z * obj_camera.lookz;
+    var cos_angle = dot / (to_len * look_len);
+
+    in_frustum = (cos_angle &gt; -0.1736);   //roughly a 100-degree half-angle cone
 }
 
 is_visible = !is_buried &amp;&amp; in_frustum &amp;&amp; (distance_to_object(obj_camera) &lt; global.renderDistance);

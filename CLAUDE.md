@@ -85,9 +85,14 @@ without introducing modern GML syntax.
   `is_visible` flag instead of re-deriving its own condition.
   `is_visible` combines three things, recomputed every frame in the
   parent's Step event: distance (`distance_to_object(obj_camera) <
-  global.renderDistance`, as before), a generous 100-degree horizontal
-  view-cone check against `obj_camera.facingDir` (frustum culling — skips
-  blocks well behind the player), and `!is_buried`. `is_buried` means
+  global.renderDistance`, as before), a generous 100-degree view-cone
+  check against the camera's actual 3D look vector (`lookx`/`looky`/
+  `lookz` — the same one raycasting uses, not just horizontal
+  `facingDir`; a horizontal-only check stays a narrow wedge even when
+  looking straight down, wrongly culling blocks to the side/behind even
+  though looking down actually reveals a wide disc all around the
+  player) — this is frustum culling, skipping blocks well outside where
+  the camera is pointing — and `!is_buried`. `is_buried` means
   "fully enclosed by solid neighbors on all 6 sides, so it can never
   actually be seen" and is deliberately *not* recomputed every frame
   (checking 6 neighbors per block per frame would be far too slow) —
