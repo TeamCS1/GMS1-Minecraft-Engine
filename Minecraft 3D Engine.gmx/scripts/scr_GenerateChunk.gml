@@ -85,10 +85,11 @@ for (var di = 0; di < chunk_size; di++)
         //deterministic (not random()) tall-grass chance, so the same
         //tile always decides the same way across unload/reload -- only
         //the tile's presence is persistent, not whether a player broke
-        //it (decoration edits aren't tracked, unlike solid blocks)
+        //it (decoration edits aren't tracked, unlike solid blocks).
+        //No tall grass in deserts.
         var deco_hash = frac(sin(tile_x * 127.1 + tile_y * 311.7 + global.deco_seed_x) * 43758.5453);
 
-        if (deco_hash < 0.02)
+        if (deco_hash < 0.02 && biome != obj_sand_block)
         {
             var deco_x = xx + 16;
             var deco_y = yy + 16;

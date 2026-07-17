@@ -35,6 +35,8 @@ global.height_seed_y = random(1000);
 global.biome_seed_x = random(1000);
 global.biome_seed_y = random(1000);
 global.deco_seed_x = random(1000);
+global.flat_seed_x = random(1000);
+global.flat_seed_y = random(1000);
 
 global.chunk_tiles = 8;   //chunk size, in 32-unit tiles per side
 

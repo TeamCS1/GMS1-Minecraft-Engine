@@ -64,12 +64,23 @@ without introducing modern GML syntax.
   by a per-run random seed (`global.height_seed_x`/`y`, set once by
   `obj_biome_gen`'s Create event) — random between playthroughs, but
   neighboring tiles trend together into rolling hills rather than
-  independent per-tile spikes. `scr_GetBiome(chunk_cx, chunk_cy)` picks
-  grass or snow per chunk the same way (`global.biome_seed_x`/`y`). Being
-  pure functions (no instance lookups, same input always gives the same
-  output) is what lets a chunk be generated, destroyed, and regenerated
-  later with identical results, and lets neighbor tiles/chunks be
-  evaluated even before their own chunk has been generated.
+  independent per-tile spikes. A second, much lower-frequency "plains
+  mask" (`global.flat_seed_x`/`y`) overrides whole regions to a constant
+  tier 1 — completely flat areas spanning multiple chunks, in any biome.
+  Flat regions deliberately sit at the *middle* tier so their boundary
+  against hilly terrain (tiers 0–2) is never more than a one-block step,
+  avoiding unclimbable cliffs at the seam. `scr_GetBiome(chunk_cx,
+  chunk_cy)` picks the terrain block type per chunk — grass (most
+  common), sand (desert), or snow — from a low-frequency function of
+  chunk coordinates (`global.biome_seed_x`/`y`), so biomes form coherent
+  multi-chunk regions rather than a per-chunk checkerboard. Biome and
+  flatness are independent axes: every biome has flat and hilly
+  variants. Deserts skip tall-grass decoration (gated in
+  `scr_GenerateChunk`). Being pure functions (no instance lookups, same
+  input always gives the same output) is what lets a chunk be generated,
+  destroyed, and regenerated later with identical results, and lets
+  neighbor tiles/chunks be evaluated even before their own chunk has
+  been generated.
 - Chunk generation (`scr_GenerateChunk(chunk_cx, chunk_cy)`): for each
   tile, fills the column solid from `z = 0` up to `scr_GetHeightTier`'s
   result (one instance per 32-unit step) so hills read as solid ground
@@ -234,9 +245,10 @@ without introducing modern GML syntax.
 
 ## Roadmap (confirmed by project owner)
 
-- Sand will become part of random terrain generation (`obj_biome_gen`
-  currently only ever chooses grass or snow); a desert biome is planned
-  for later.
+- Biomes are done (grass/desert/snow regions, each with flat and hilly
+  variants — see Architecture). Possible later polish: desert-specific
+  decoration (e.g. cacti) to replace the tall grass deserts now skip,
+  and biome-aware terrain shapes (e.g. dunes).
 - `obj_torch` is a deliberate lighting test, not a finished feature: a
   physical torch mesh is planned for later, but the current toggleable
   point-light-only version works fine for testing lighting as-is. No work
