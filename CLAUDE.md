@@ -80,23 +80,24 @@ without introducing modern GML syntax.
 - Sand will become part of random terrain generation (`obj_biome_gen`
   currently only ever chooses grass or snow); a desert biome is planned
   for later.
+- `obj_torch` is a deliberate lighting test, not a finished feature: a
+  physical torch mesh is planned for later, but the current toggleable
+  point-light-only version works fine for testing lighting as-is. No work
+  needed on it for now.
+- `rm_gen` is reserved for world-gen seeds and starting parameters for
+  future terrain generation. Leave it empty/untouched for now.
+- Hotbar/inventory (`global.slots` currently only drives the HUD
+  highlight, nothing consumes it) is planned but not being worked on yet
+  — leave as-is.
+- Block collision (`scr_CollisionHandler.gml` only handles `obj_sand_block`
+  step-up; grass/snow have none) will be picked up after the new
+  look-direction raycasting has been tested.
 
 ## Open questions
 
 - **Block placement type selection**: `obj_ray_cast`'s right-click handler
   still has `// TODO: allow selection of blocks` and always places
   `obj_grass_block`. Wire to `global.slots` once there's a real inventory?
-- **Block collision**: `scr_CollisionHandler.gml` only has step-up logic
-  for `obj_sand_block` (z 80/96). Grass/snow blocks have no collision at
-  all. Should collision generalize to all block types?
-- **Hotbar/inventory**: number keys change `global.slots` (hotbar
-  highlight) but nothing consumes that value yet. Is a real inventory
-  system planned?
-- **`obj_torch`**: has no visible mesh; it only toggles a point light that
-  follows the camera's x/y. Is a placeable/visible torch planned?
-- **`rm_gen` room**: exists with zero instances placed and isn't reachable
-  from anything in code (`rm_water` is the start room and does everything).
-  Leftover test room, or a planned second area?
 - **Orphaned `backup` object**: `objects/backup.object.gmx` is registered
   in the project file but never instantiated anywhere (not in code, not in
   any room) — looks like an abandoned debug HUD for `buffer_getpixel`
