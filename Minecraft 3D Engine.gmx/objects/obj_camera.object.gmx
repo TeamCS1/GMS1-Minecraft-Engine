@@ -200,14 +200,14 @@ scr_CollisionHandler();
           <argument>
             <kind>1</kind>
             <string>///Change render distance
-if keyboard_check_released(vk_numpad4)
+if keyboard_check_released(vk_pagedown)
 {
     global.fog_far -= 256; 
     global.renderDistance -= 256; 
     global.zFar -= 256;
 }
 
-if keyboard_check_released(vk_numpad6)
+if keyboard_check_released(vk_pageup)
 {
     global.fog_far += 256; 
     global.renderDistance += 256; 
