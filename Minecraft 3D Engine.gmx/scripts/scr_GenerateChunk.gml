@@ -68,7 +68,17 @@ for (var di = 0; di < chunk_size; di++)
                 new_block.fade_alpha = 0;
                 new_block.is_buried = (h < height_tier) && (tier_w >= h) && (tier_e >= h) && (tier_n >= h) && (tier_s >= h);
 
-                ds_map_add(global.block_lookup, edit_key, new_block);
+                //replace-or-add: a bare ds_map_add fails silently if a
+                //stale entry exists, which would leave the lookup pointing
+                //at the wrong instance -- newest always wins
+                if (ds_map_exists(global.block_lookup, edit_key))
+                {
+                    ds_map_replace(global.block_lookup, edit_key, new_block);
+                }
+                else
+                {
+                    ds_map_add(global.block_lookup, edit_key, new_block);
+                }
             }
         }
 
@@ -138,7 +148,14 @@ if (ds_map_exists(global.chunk_extra, chunk_key))
                     extra_block.fade_alpha = 0;
                     extra_block.is_buried = false;   //rarely fully enclosed; scr_UpdateBuriedAround keeps this correct as the player builds around it
 
-                    ds_map_add(global.block_lookup, pos_key, extra_block);
+                    if (ds_map_exists(global.block_lookup, pos_key))
+                    {
+                        ds_map_replace(global.block_lookup, pos_key, extra_block);
+                    }
+                    else
+                    {
+                        ds_map_add(global.block_lookup, pos_key, extra_block);
+                    }
                 }
             }
         }

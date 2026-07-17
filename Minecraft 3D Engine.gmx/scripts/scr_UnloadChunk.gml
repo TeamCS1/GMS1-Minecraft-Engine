@@ -18,9 +18,16 @@ with (obj_block_parent)
         {
             var lookup_key = scr_EncodeBlockKey(x / 32, y / 32, z / 32);
 
+            // Ownership check: only delete the entry if it still points
+            // at this exact instance. If a duplicate ever ended up
+            // sharing this cell, blindly deleting would orphan the
+            // survivor (visible but collisionless).
             if (ds_map_exists(global.block_lookup, lookup_key))
             {
-                ds_map_delete(global.block_lookup, lookup_key);
+                if (ds_map_find_value(global.block_lookup, lookup_key) == id)
+                {
+                    ds_map_delete(global.block_lookup, lookup_key);
+                }
             }
         }
 

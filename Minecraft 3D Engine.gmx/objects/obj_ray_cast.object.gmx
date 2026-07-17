@@ -66,6 +66,15 @@ if (mouse_check_button_released(mb_right))
     var height_tier = scr_GetHeightTier(tile_x, tile_y);
     var edit_key = scr_EncodeBlockKey(tile_x, tile_y, layer_h);
 
+    // Tag the block with the chunk it actually sits in. Without this it
+    // keeps the parent's default chunk_cx/chunk_cy of (0,0), so its real
+    // chunk's unload would leave it behind and chunk (0,0)'s unload
+    // would wrongly destroy it -- deleting the lookup entry that a
+    // regenerated duplicate in the same cell now owns, leaving that
+    // block visible but collisionless.
+    block.chunk_cx = floor(tile_x / global.chunk_tiles);
+    block.chunk_cy = floor(tile_y / global.chunk_tiles);
+
     if (ds_map_exists(global.block_edits, edit_key))
     {
         ds_map_replace(global.block_edits, edit_key, obj_grass_block);
@@ -162,9 +171,16 @@ if (instance_exists(target_block))
         var edit_key = scr_EncodeBlockKey(tile_x, tile_y, layer_h);
 
         // Keep the O(1) spatial lookup in sync (see global.block_lookup).
+        // Ownership check: only delete the entry if it still points at
+        // the exact instance being broken -- if a duplicate ever ended up
+        // sharing this cell, blindly deleting would orphan the survivor
+        // (visible but collisionless).
         if (ds_map_exists(global.block_lookup, edit_key))
         {
-            ds_map_delete(global.block_lookup, edit_key);
+            if (ds_map_find_value(global.block_lookup, edit_key) == target_block)
+            {
+                ds_map_delete(global.block_lookup, edit_key);
+            }
         }
 
         if (layer_h &lt;= height_tier)

@@ -118,7 +118,16 @@ without introducing modern GML syntax.
   data source of truth, it must be kept in sync at every creation/
   destruction site: both loops in `scr_GenerateChunk`, `scr_UnloadChunk`
   (removes entries *before* destroying, or the map would hold stale ids),
-  and `obj_ray_cast`'s place/break handlers.
+  and `obj_ray_cast`'s place/break handlers. Two hard-won sync rules:
+  deletes are ownership-checked (only remove an entry if it still points
+  at the exact instance being destroyed — blindly deleting by key can
+  orphan a duplicate that later claimed the cell, leaving it visible but
+  collisionless), and inserts are replace-or-add (a bare `ds_map_add`
+  fails *silently* when the key exists, leaving the map pointing at a
+  stale instance). Player-placed blocks must also get `chunk_cx`/
+  `chunk_cy` set at placement — the parent default of (0,0) would make
+  chunk (0,0)'s unload destroy them and their real chunk's unload miss
+  them, which was the cause of a rare walk-through-block bug.
 - Block object inheritance: `obj_grass_block`, `obj_sand_block`,
   `obj_snow_block`, and `obj_tinted_cross` are all children of
   `obj_block_parent` (never instantiated directly). The parent defines
