@@ -19,4 +19,13 @@ with (obj_block_parent)
     }
 }
 
+// Never return a standing height below the flat ground baseline (80).
+// obj_biome_gen places grass/snow at z=0 (top 32), which under the plain
+// top+32 formula would sink the player to 64 -- lower than intended.
+// Sand's already-tuned 96 (z=32, top 64) is unaffected since it's above 80.
+if (support_z != -1 && support_z < 80)
+{
+    support_z = 80;
+}
+
 return support_z;
