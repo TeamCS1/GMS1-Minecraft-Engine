@@ -1,43 +1,58 @@
 
 //handle collisions with blocks
-if position_meeting(x, y, obj_sand_block)
+//
+//Instead of one hardcoded z threshold per block type, find the highest
+//solid block (any type, via obj_block_parent) under the player's x/y and
+//derive the height standing on it would give: the block's own top
+//(z + 32) plus the player's 32-unit eye offset above whatever they stand
+//on -- the same offset sand was already tuned to (top 64 -> height 96).
+//This supports any number of stacked layers: a block placed on top of
+//another block (its own z at or above the lower block's top) just
+//produces a taller "support_z", with no extra code needed per layer.
+
+var support_z = 80;   //ground level when nothing solid is underneath
+var found_block = false;
+
+with (obj_block_parent)
 {
-    if z > 79 && z < 96 && jump == false
+    if (is_solid && other.x >= x + hit_x1 && other.x < x + hit_x1 + 32 && other.y >= y + hit_y1 && other.y < y + hit_y1 + 32)
     {
-        if z < 96
+        found_block = true;
+
+        var top = z + 32 + 32;
+        if (top > support_z)
         {
-            //hitting the sand from the side
-            move_bounce_all(false);
-            show_debug_message("Colliding with sand from the side!")
+            support_z = top;
         }
     }
-    
-    else if z >= 96
+}
+
+if (found_block && jump == false)
+{
+    if (z < support_z)
     {
-        z = 96
-        player_height = 96;
-        show_debug_message("At Y = 96")   
+        //hitting the block from the side, below its top
+        move_bounce_all(false);
+        show_debug_message("Colliding with a block from the side!")
+    }
+    else
+    {
+        z = support_z;
+        player_height = support_z;
+        show_debug_message("At Z = " + string(support_z))
     }
 }
 
-//if the player is not on the same block as sand and jump is false
-if !position_meeting(x, y, obj_sand_block) && jump == false
+//if the player is not over any solid block, drop back to ground level
+if (!found_block && jump == false)
 {
-    if z >= 96
+    if (z > 80)
     {
-        z = 80
+        z = 80;
         player_height = 80;
-        show_debug_message("Reset Height to 80")   
+        show_debug_message("Reset Height to 80")
     }
 }
 
-//layer handler
-if z == 80
-{
-    global.layer = 1;
-}
-
-else if z == 96
-{
-    global.layer = 2;    
-}
+//layer handler: 1 = ground, 2 = one block up, 3 = two blocks up, ...
+global.layer = 1 + round((player_height - 80) / 16);

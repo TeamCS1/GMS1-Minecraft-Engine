@@ -53,14 +53,16 @@ without introducing modern GML syntax.
   `obj_block_parent` (never instantiated directly). The parent defines
   `hit_x1`/`hit_y1` — the offset of the block's hit box's near corner
   relative to its own x/y (0,0 for the cube blocks; -16,-16 for
-  `obj_tinted_cross`, which is centered rather than corner-anchored).
+  `obj_tinted_cross`, which is centered rather than corner-anchored) —
+  and `is_solid` (true by default; `obj_tinted_cross` overrides it to
+  false since it's decorative and shouldn't be stood on or collided with).
   Any code that needs to test "is this any kind of block" (raycasting,
-  eventually collision) should use a single `with (obj_block_parent)`
-  check — GameMaker's `with` automatically includes child instances —
-  instead of one check per block type. Child Create events must call
-  `event_inherited()` first so the parent's `hit_x1`/`hit_y1` defaults run.
-  Adding a new block type means parenting it to `obj_block_parent`
-  (and setting `hit_x1`/`hit_y1` if it isn't corner-anchored); no other
+  collision) should use a single `with (obj_block_parent)` check —
+  GameMaker's `with` automatically includes child instances — instead of
+  one check per block type. Child Create events must call
+  `event_inherited()` first so the parent's defaults run. Adding a new
+  block type means parenting it to `obj_block_parent` (and setting
+  `hit_x1`/`hit_y1`/`is_solid` if they differ from the defaults); no other
   script needs to change.
 - Raycasting/interaction (`scr_Raycast.gml`, called from `obj_camera`'s Step
   event): marches a ray from the camera's eye position along the actual
@@ -71,6 +73,18 @@ without introducing modern GML syntax.
   instance that was hit — left-click destroys `target_block` directly,
   right-click places a new block there (currently hardcoded to
   `obj_grass_block`).
+- Collision (`scr_CollisionHandler.gml`, called from `obj_camera`'s Step
+  event right after raycasting): finds the highest solid block (any type,
+  via `obj_block_parent`) whose footprint contains the player's x/y, and
+  derives the standing height that block would give — its own top
+  (`z + 32`) plus a fixed 32-unit eye offset (the same offset sand was
+  already tuned to: top 64 -> standing height 96). Falls back to a flat
+  ground baseline of 80 when nothing solid is underneath. This supports
+  any number of stacked layers automatically: a block placed with its own
+  z at or above a lower block's top just produces a taller support
+  height, no per-layer code needed. `global.layer` is derived from the
+  resulting height (`1 + (player_height - 80) / 16`) for the HUD/debug
+  display.
 
 ## Code style (observed conventions)
 
@@ -106,28 +120,20 @@ without introducing modern GML syntax.
 - Hotbar/inventory (`global.slots` currently only drives the HUD
   highlight, nothing consumes it) is planned but not being worked on yet
   — leave as-is.
-- Block collision (`scr_CollisionHandler.gml` only handles `obj_sand_block`
-  step-up; grass/snow have none) will be picked up after the new
-  look-direction raycasting has been tested — raycasting has now been
-  tested and confirmed working. The `obj_block_parent` inheritance
-  refactor (see Architecture) is in place so collision can use the same
-  single-check pattern; the actual step-up behavior desired for
-  grass/snow is still to be defined (sand's current 80/96 z thresholds
-  don't obviously generalize — see Open questions).
+- Block collision now generalizes to every solid block type (grass/sand/
+  snow) via `obj_block_parent`, with support for stacked multi-elevation
+  layers derived from each block's own z — see Architecture. Owner
+  confirmed: sand was the test bed (80 = ground, 96 = standing on one
+  block); a third layer was attempted by hand and had trouble, which is
+  what this generalization is meant to fix. Player gravity/landing is
+  handled by the existing jump code in `obj_camera`, not a separate
+  system.
 
 ## Open questions
 
 - **Block placement type selection**: `obj_ray_cast`'s right-click handler
   still has `// TODO: allow selection of blocks` and always places
   `obj_grass_block`. Wire to `global.slots` once there's a real inventory?
-- **Block collision behavior**: `scr_CollisionHandler.gml`'s existing
-  sand-only logic uses hardcoded z thresholds (80/96) for step-up that
-  don't obviously generalize — grass/snow normally sit at z=0 (already
-  matching the player's baseline `player_height` of 80), and there's no
-  gravity/falling system currently, so it's unclear what "collision" should
-  actually do for grass/snow: same kind of step-up as sand (and if so, by
-  how much), or just solid-floor blocking derived from each block's own z?
-  Needs a decision before generalizing past sand.
 - **Orphaned `backup` object**: `objects/backup.object.gmx` is registered
   in the project file but never instantiated anywhere (not in code, not in
   any room) — looks like an abandoned debug HUD for `buffer_getpixel`

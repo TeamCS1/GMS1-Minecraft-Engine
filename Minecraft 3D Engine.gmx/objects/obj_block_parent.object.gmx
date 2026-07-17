@@ -32,6 +32,10 @@
 // generic "with (obj_block_parent)" check instead of one per type.
 hit_x1 = 0;
 hit_y1 = 0;
+
+// Whether the player can stand on/collide with this block at all.
+// Decorative blocks (e.g. obj_tinted_cross) override this to false.
+is_solid = true;
 </string>
           </argument>
         </arguments>

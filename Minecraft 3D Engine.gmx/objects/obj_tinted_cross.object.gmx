@@ -31,6 +31,9 @@
 hit_x1 = -16;
 hit_y1 = -16;
 
+// Decorative tall grass -- the player walks through it, not on it.
+is_solid = false;
+
 block = load_model(working_directory + "Assets\tinted_cross.d3d");
 z = 32;
 //move_snap(8,8);
