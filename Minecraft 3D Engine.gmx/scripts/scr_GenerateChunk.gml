@@ -67,6 +67,8 @@ for (var di = 0; di < chunk_size; di++)
                 new_block.chunk_cy = chunk_cy;
                 new_block.fade_alpha = 0;
                 new_block.is_buried = (h < height_tier) && (tier_w >= h) && (tier_e >= h) && (tier_n >= h) && (tier_s >= h);
+
+                ds_map_add(global.block_lookup, edit_key, new_block);
             }
         }
 
@@ -135,6 +137,8 @@ if (ds_map_exists(global.chunk_extra, chunk_key))
                     extra_block.chunk_cy = chunk_cy;
                     extra_block.fade_alpha = 0;
                     extra_block.is_buried = false;   //rarely fully enclosed; scr_UpdateBuriedAround keeps this correct as the player builds around it
+
+                    ds_map_add(global.block_lookup, pos_key, extra_block);
                 }
             }
         }

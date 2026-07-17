@@ -63,6 +63,7 @@
     <script>scripts\scr_FindSupportHeight.gml</script>
     <script>scripts\scr_IsSolidBlockAt.gml</script>
     <script>scripts\scr_UpdateBuriedAround.gml</script>
+    <script>scripts\scr_RecomputeBuriedAt.gml</script>
     <script>scripts\scr_GetHeightTier.gml</script>
     <script>scripts\scr_GetBiome.gml</script>
     <script>scripts\scr_EncodeBlockKey.gml</script>

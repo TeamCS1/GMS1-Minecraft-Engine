@@ -21,7 +21,6 @@ if (jump == false)
     {
         //hitting a block from the side, below its top
         move_bounce_all(false);
-        show_debug_message("Colliding with a block from the side!")
     }
     else if (z - support_z > 32)
     {
@@ -35,7 +34,6 @@ if (jump == false)
     {
         z = support_z;
         player_height = support_z;
-        show_debug_message("At Z = " + string(support_z))
     }
 }
 

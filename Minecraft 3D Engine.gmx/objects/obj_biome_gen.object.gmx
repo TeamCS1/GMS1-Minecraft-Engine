@@ -54,6 +54,16 @@ global.chunk_extra = ds_map_create();
 //currently has instances spawned.
 global.loaded_chunks = ds_map_create();
 
+//key: scr_EncodeBlockKey(tile_x, tile_y, layer_h) -> instance id of the
+//solid block at that exact position. O(1) spatial lookup so collision
+//and raycasting don't have to scan every loaded block instance (there
+//can be thousands) -- see scr_FindSupportHeight/scr_Raycast. Only solid
+//cube blocks are tracked (obj_tinted_cross isn't grid-corner-aligned, so
+//it's excluded and still found via a small instance scan where needed).
+//Kept in sync at every creation/destruction site: scr_GenerateChunk,
+//scr_UnloadChunk, and obj_ray_cast's place/break handlers.
+global.block_lookup = ds_map_create();
+
 last_chunk_cx = floor(obj_camera.x / (global.chunk_tiles * 32));
 last_chunk_cy = floor(obj_camera.y / (global.chunk_tiles * 32));
 

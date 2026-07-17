@@ -75,6 +75,16 @@ if (mouse_check_button_released(mb_right))
         ds_map_add(global.block_edits, edit_key, obj_grass_block);
     }
 
+    // Keep the O(1) spatial lookup in sync (see global.block_lookup).
+    if (ds_map_exists(global.block_lookup, edit_key))
+    {
+        ds_map_replace(global.block_lookup, edit_key, block);
+    }
+    else
+    {
+        ds_map_add(global.block_lookup, edit_key, block);
+    }
+
     if (layer_h &gt; height_tier)
     {
         // Outside the natural column -- the natural fill loop never
@@ -150,6 +160,12 @@ if (instance_exists(target_block))
         var layer_h = broken_z / 32;
         var height_tier = scr_GetHeightTier(tile_x, tile_y);
         var edit_key = scr_EncodeBlockKey(tile_x, tile_y, layer_h);
+
+        // Keep the O(1) spatial lookup in sync (see global.block_lookup).
+        if (ds_map_exists(global.block_lookup, edit_key))
+        {
+            ds_map_delete(global.block_lookup, edit_key);
+        }
 
         if (layer_h &lt;= height_tier)
         {

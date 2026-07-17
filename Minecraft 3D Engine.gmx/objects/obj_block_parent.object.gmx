@@ -44,11 +44,6 @@ is_solid = true;
 // broken during play.
 is_buried = false;
 
-// Combines is_buried with a per-frame distance + view-cone check (see
-// the Step event below). Child Draw events check this instead of
-// re-deriving their own visibility condition.
-is_visible = true;
-
 // Which chunk this instance belongs to (set by scr_GenerateChunk right
 // after creation) -- scr_UnloadChunk uses this to find exactly the
 // instances to destroy when a chunk goes out of range.
@@ -90,27 +85,55 @@ fade_alpha = 0;
 // horizontal direction even though looking down actually reveals a wide
 // disc all around the player. is_buried is NOT recomputed here -- see
 // the Create event comment.
-var in_frustum = false;
-
-var to_x = x - obj_camera.x;
-var to_y = y - obj_camera.y;
-var to_z = z - obj_camera.z;
-var to_len = point_distance_3d(0, 0, 0, to_x, to_y, to_z);
-
-if (to_len &lt; 1)
+//
+// Written entirely in squared distances -- no sqrt, no division -- since
+// this runs for every loaded block every frame (there can be thousands).
+// obj_camera's look vector is a true unit vector (see its Step event),
+// so cos(angle) = dot(to_block, look) / |to_block| needs no second
+// normalization. To compare against a threshold angle without a sqrt,
+// square both sides -- but that only works for acute (under 90 degree)
+// thresholds; our 100-degree half-angle threshold is obtuse (negative
+// cosine), so a negative dot (angle > 90) has to be let through before
+// the squared comparison, since squaring would otherwise throw away the
+// sign that distinguishes "just past 90" from "far past 90".
+//
+// Sets the engine's own built-in "visible" instead of a custom flag, so
+// GameMaker skips calling Draw entirely for culled instances rather than
+// calling it to do nothing.
+if (is_buried)
 {
-    in_frustum = true;   //essentially on top of the camera
+    visible = false;
 }
 else
 {
-    var look_len = point_distance_3d(0, 0, 0, obj_camera.lookx, obj_camera.looky, obj_camera.lookz);
-    var dot = to_x * obj_camera.lookx + to_y * obj_camera.looky + to_z * obj_camera.lookz;
-    var cos_angle = dot / (to_len * look_len);
+    var to_x = x - obj_camera.x;
+    var to_y = y - obj_camera.y;
+    var to_z = z - obj_camera.z;
+    var dist_sq = to_x * to_x + to_y * to_y + to_z * to_z;
+    var render_dist = global.renderDistance;
 
-    in_frustum = (cos_angle &gt; -0.1736);   //roughly a 100-degree half-angle cone
+    if (dist_sq &gt;= render_dist * render_dist)
+    {
+        visible = false;
+    }
+    else if (dist_sq &lt; 1)
+    {
+        visible = true;   //essentially on top of the camera
+    }
+    else
+    {
+        var dot = to_x * obj_camera.lookx + to_y * obj_camera.looky + to_z * obj_camera.lookz;
+
+        if (dot &gt;= 0)
+        {
+            visible = true;
+        }
+        else
+        {
+            visible = (dot * dot &lt; 0.030138 * dist_sq);   //0.1736^2, i.e. the 100-degree half-angle cone
+        }
+    }
 }
-
-is_visible = !is_buried &amp;&amp; in_frustum &amp;&amp; (distance_to_object(obj_camera) &lt; global.renderDistance);
 
 // Fade in newly spawned/streamed-in blocks instead of popping.
 if (fade_alpha &lt; 1)

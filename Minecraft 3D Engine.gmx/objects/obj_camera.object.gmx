@@ -137,10 +137,15 @@ if (final_speed &gt; 1.5) {
     vspeed = lengthdir_y(1.5, angle);
 }
 
-// Camera look vectors
+// Camera look vectors -- a true unit vector (proper spherical-to-
+// cartesian conversion), not the old linear approximation. This matters
+// now beyond just direction: obj_block_parent's visibility check assumes
+// length exactly 1 so it can skip normalizing (a sqrt) every block every
+// frame.
+var look_horizontal = lengthdir_x(1, zdir);
+lookx = lengthdir_x(look_horizontal, facingDir);
+looky = lengthdir_y(look_horizontal, facingDir);
 lookz = lengthdir_y(1, -zdir);
-lookx = lengthdir_x(1 - abs(lookz), facingDir);
-looky = lengthdir_y(1 - abs(lookz), facingDir);
 
 // Jump logic
 if keyboard_check_pressed(vk_space) &amp;&amp; !jump {

@@ -30,13 +30,26 @@ with obj_camera
             ray_z += lookz * step;
             dist += step;
 
-            // obj_block_parent covers every block type (grass/sand/snow/tinted_cross,
-            // and any future block parented to it) in one check. hit_x1/hit_y1 is
-            // each type's own near-corner offset, so cube blocks and the centered
-            // tinted_cross decoration both work without special-casing here.
-            with (obj_block_parent)
+            // Solid cube blocks: O(1) lookup instead of scanning every loaded
+            // instance (there can be thousands) -- see global.block_lookup.
+            if (hit_block == noone)
             {
-                if (hit_block == noone && ray_x >= x + hit_x1 && ray_x < x + hit_x1 + 32 && ray_y >= y + hit_y1 && ray_y < y + hit_y1 + 32 && ray_z >= z && ray_z < z + 32)
+                var sample_key = scr_EncodeBlockKey(floor(ray_x / 32), floor(ray_y / 32), floor(ray_z / 32));
+
+                if (ds_map_exists(global.block_lookup, sample_key))
+                {
+                    hit_block = ds_map_find_value(global.block_lookup, sample_key);
+                }
+            }
+
+            // obj_tinted_cross isn't grid-corner-aligned (hit_x1/hit_y1 = -16,
+            // centered) so it can't share the tile-indexed lookup above -- but
+            // there are far fewer of them than solid blocks, so a small scan
+            // here is cheap.
+            if (hit_block == noone)
+            with (obj_tinted_cross)
+            {
+                if (ray_x >= x - 16 && ray_x < x + 16 && ray_y >= y - 16 && ray_y < y + 16 && ray_z >= z && ray_z < z + 32)
                 {
                     hit_block = id;
                 }

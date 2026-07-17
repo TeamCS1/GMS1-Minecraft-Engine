@@ -82,35 +82,34 @@ z = 32;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>if is_visible
-{
-    //make sure drawing colors are reset to white
-    draw_set_color(c_white);
-    
-    texture_set_repeat(1);
-    texture_set_interpolation(0);
-    
-    draw_set_alpha_test(1);
-    draw_set_alpha_test_ref_value(128);
-    draw_set_alpha(fade_alpha);
+            <string>// GameMaker's built-in "visible" (set in obj_block_parent's Step event)
+// already gates whether this event runs at all -- no need to re-check.
 
-    d3d_set_culling(0);
-    d3d_set_lighting(1); //enable lighting
-    
-    d3d_transform_set_scaling(3,3,3);
-    d3d_transform_add_translation(x, y, z);
-    
-    //texture control
-    d3d_model_draw(block, 0, 0, 0, sprite_get_texture(uv_tinted_grass,0));
-    
-    //reset settings
-    draw_set_alpha(1);
-    d3d_set_lighting(0);
-    d3d_transform_set_identity(); 
-    texture_set_interpolation(1);
-    draw_set_alpha_test(0);      
+//make sure drawing colors are reset to white
+draw_set_color(c_white);
 
-}
+texture_set_repeat(1);
+texture_set_interpolation(0);
+
+draw_set_alpha_test(1);
+draw_set_alpha_test_ref_value(128);
+draw_set_alpha(fade_alpha);
+
+d3d_set_culling(0);
+d3d_set_lighting(1); //enable lighting
+
+d3d_transform_set_scaling(3,3,3);
+d3d_transform_add_translation(x, y, z);
+
+//texture control
+d3d_model_draw(block, 0, 0, 0, sprite_get_texture(uv_tinted_grass,0));
+
+//reset settings
+draw_set_alpha(1);
+d3d_set_lighting(0);
+d3d_transform_set_identity();
+texture_set_interpolation(1);
+draw_set_alpha_test(0);
 </string>
           </argument>
         </arguments>

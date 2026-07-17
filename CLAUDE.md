@@ -106,6 +106,19 @@ without introducing modern GML syntax.
   (`obj_tinted_cross`) are deliberately **not** tracked this way (they
   aren't grid-aligned, and their placement is already deterministic-by-
   position) — breaking one doesn't persist.
+- Spatial lookup (`global.block_lookup`, a `ds_map` keyed by
+  `scr_EncodeBlockKey`, value = instance id): with thousands of blocks
+  loaded, a `with (obj_block_parent)` scan per query (the original
+  approach) became the dominant per-frame cost. `block_lookup` gives O(1)
+  "is there a solid block at this exact position" instead, and
+  `scr_FindSupportHeight`/`scr_Raycast`/`scr_IsSolidBlockAt` all use it
+  now — only decorative `obj_tinted_cross` still needs a small instance
+  scan (it isn't grid-corner-aligned, and there are far fewer of them
+  than solid blocks). Because it's a cache of live instance ids, not a
+  data source of truth, it must be kept in sync at every creation/
+  destruction site: both loops in `scr_GenerateChunk`, `scr_UnloadChunk`
+  (removes entries *before* destroying, or the map would hold stale ids),
+  and `obj_ray_cast`'s place/break handlers.
 - Block object inheritance: `obj_grass_block`, `obj_sand_block`,
   `obj_snow_block`, and `obj_tinted_cross` are all children of
   `obj_block_parent` (never instantiated directly). The parent defines
@@ -123,48 +136,61 @@ without introducing modern GML syntax.
   `hit_x1`/`hit_y1`/`is_solid` if they differ from the defaults); no other
   script needs to change.
 - Draw-time culling (`obj_block_parent`'s Step event, plus `is_buried`
-  set elsewhere — see below): each child's Draw event checks a single
-  `is_visible` flag instead of re-deriving its own condition.
-  `is_visible` combines three things, recomputed every frame in the
-  parent's Step event: distance (`distance_to_object(obj_camera) <
-  global.renderDistance`, as before), a generous 100-degree view-cone
-  check against the camera's actual 3D look vector (`lookx`/`looky`/
-  `lookz` — the same one raycasting uses, not just horizontal
-  `facingDir`; a horizontal-only check stays a narrow wedge even when
-  looking straight down, wrongly culling blocks to the side/behind even
-  though looking down actually reveals a wide disc all around the
-  player) — this is frustum culling, skipping blocks well outside where
-  the camera is pointing — and `!is_buried`. `is_buried` means
-  "fully enclosed by solid neighbors on all 6 sides, so it can never
-  actually be seen" and is deliberately *not* recomputed every frame
-  (checking 6 neighbors per block per frame would be far too slow) —
-  instead it's maintained two ways: `obj_biome_gen` computes it
-  analytically at world-gen time (cheap, since terrain height is a pure
-  function of position — no instance lookups needed, just re-evaluating
-  the same height formula for each neighbor tile), and
-  `scr_UpdateBuriedAround(cx, cy, cz)` recomputes it via an actual
-  instance scan (`scr_IsSolidBlockAt`) for the handful of blocks touching
-  a given cell whenever `obj_ray_cast` places or breaks a block — cheap
-  enough since that only runs on player action, not every frame.
+  set elsewhere — see below): sets the engine's own built-in `visible`
+  instead of a custom flag, so GameMaker skips calling Draw entirely for
+  culled instances rather than calling it to do nothing. `visible`
+  combines three things, recomputed every frame in the parent's Step
+  event: distance, a generous 100-degree view-cone check against the
+  camera's actual 3D look vector (`lookx`/`looky`/`lookz` — the same one
+  raycasting uses, not just horizontal `facingDir`; a horizontal-only
+  check stays a narrow wedge even when looking straight down, wrongly
+  culling blocks to the side/behind even though looking down actually
+  reveals a wide disc all around the player) — this is frustum culling,
+  skipping blocks well outside where the camera is pointing — and
+  `!is_buried`. All of it is done in squared distances with no `sqrt`/
+  division: `obj_camera`'s look vector is a true unit vector (proper
+  spherical-to-cartesian conversion, not the project's older linear
+  approximation), so `cos(angle) = dot / |to_block|` needs no second
+  normalization, and comparing against the (obtuse, 100-degree) threshold
+  angle is done by letting any non-negative dot product through
+  immediately (an obtuse cone always accepts "in front of or beside",
+  only "behind" needs the actual angle check) and squaring only the
+  negative-dot case. This runs for every loaded block every frame, so
+  avoiding `sqrt` here matters far more than in code that only runs on
+  player action. `is_buried` means "fully enclosed by solid neighbors on
+  all 6 sides, so it can never actually be seen" and is deliberately
+  *not* recomputed every frame (checking 6 neighbors per block per frame
+  would be far too slow) — instead it's maintained two ways:
+  `scr_GenerateChunk` computes it analytically at world-gen time (cheap,
+  since terrain height is a pure function of position — no instance
+  lookups needed), and `scr_UpdateBuriedAround(cx, cy, cz)` recomputes it
+  via `global.block_lookup`/`scr_RecomputeBuriedAt` for the handful of
+  blocks touching a given cell whenever `obj_ray_cast` places or breaks a
+  block.
 - Raycasting/interaction (`scr_Raycast.gml`, called from `obj_camera`'s Step
   event): marches a ray from the camera's eye position along the actual
   look vector (`lookx`/`looky`/`lookz`, derived from `facingDir`/`zdir`)
-  in fixed steps, testing each sample point against `obj_block_parent`'s
-  hit box (see above). On a hit, `obj_ray_cast` is spawned at the last
-  empty cell before the hit block, with `target_block` set to the exact
-  instance that was hit — left-click destroys `target_block` directly,
-  right-click places a new block there (currently hardcoded to
-  `obj_grass_block`).
+  in fixed steps. Solid cube blocks are tested via an O(1)
+  `global.block_lookup` check on the sample point's tile indices;
+  `obj_tinted_cross` (not grid-corner-aligned, and far less numerous)
+  still uses a small instance scan. On a hit, `obj_ray_cast` is spawned
+  at the last empty cell before the hit block, with `target_block` set
+  to the exact instance that was hit — left-click destroys
+  `target_block` directly, right-click places a new block there
+  (currently hardcoded to `obj_grass_block`).
 - Collision (`scr_CollisionHandler.gml`, called from `obj_camera`'s Step
   event right after raycasting): uses `scr_FindSupportHeight()` to get the
   standing height the tallest solid block under the player's x/y would
   give — its own top (`z + 32`) plus a fixed 32-unit eye offset (the same
   offset sand was already tuned to: top 64 -> standing height 96), or -1
   if nothing solid is there (collision then falls back to a flat ground
-  baseline of 80). This supports any number of stacked layers
-  automatically: a block placed with its own z at or above a lower
-  block's top just produces a taller support height, no per-layer code
-  needed. `global.layer` is derived from the resulting height
+  baseline of 80). Finds it by scanning upward through `global.block_lookup`
+  for that x/y column (a bounded 64-layer cap, each check O(1)) instead
+  of the project's original approach of scanning every loaded block
+  instance. This supports any number of stacked layers automatically: a
+  block placed with its own z at or above a lower block's top just
+  produces a taller support height, no per-layer code needed.
+  `global.layer` is derived from the resulting height
   (`1 + (player_height - 80) / 16`) for the HUD/debug display.
   `scr_FindSupportHeight()` matches purely by x/y footprint, with no
   regard for how far below/above the player that block actually is, so
