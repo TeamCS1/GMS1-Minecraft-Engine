@@ -89,7 +89,7 @@ for (var di = 0; di < chunk_size; di++)
         //No tall grass in deserts.
         var deco_hash = frac(sin(tile_x * 127.1 + tile_y * 311.7 + global.deco_seed_x) * 43758.5453);
 
-        if (deco_hash < 0.15 && biome != obj_sand_block)
+        if (deco_hash < 0.015 && biome != obj_sand_block)
         {
             var deco_x = xx + 16;
             var deco_y = yy + 16;
