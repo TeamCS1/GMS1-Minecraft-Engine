@@ -239,6 +239,22 @@ without introducing modern GML syntax.
   just with no initial upward boost) instead of teleporting down; anything
   closer snaps directly onto it. This is what makes walking off a tall
   stack fall naturally instead of jumping straight to the block below.
+  The "bump" case does **not** push the player back horizontally — it
+  used to call the built-in `move_bounce_all(false)`, but that uses
+  GameMaker's own `solid`-flag mask collision (a room-wide scan against
+  every `solid`-flagged instance), completely bypassing the O(1) lookup
+  system above; `obj_sand_block`/`obj_snow_block` had `solid` left on
+  from when sand was the original test bed (see Roadmap), and once
+  biomes made multi-chunk sand/snow regions common, this scan (repeating
+  every frame the player stood in a bump position) is what caused a
+  severe, sustained fps drop after placing a block next to yourself.
+  Fixed by turning `solid` off on both (matching grass, which never had
+  it) and dropping the call. Net effect: no block type has real
+  side-to-side wall collision right now — bumping just stops the height
+  snap from happening early, nothing stops you from being nudged into a
+  block's horizontal footprint below its top. A proper, cheap
+  (single-block-scoped, not room-wide) horizontal push-back is still
+  worth adding later if that's wanted — see Open questions.
 - Jumping (`obj_camera`'s Step event): a simple arc — `jumpHeightModifier`
   starts at 5.0 on takeoff and decrements by 0.5 every step, added to `z`
   each frame, so it rises then falls on its own. Once `jumpHeightModifier`
@@ -286,6 +302,12 @@ without introducing modern GML syntax.
 
 ## Open questions
 
+- **Horizontal wall collision**: removed along with the `move_bounce_all`
+  performance bug (see Architecture, Collision). No block type currently
+  stops the player from being nudged sideways into its footprint below
+  its top. Worth adding back as a proper single-block-scoped push-back
+  (not a room-wide `solid`-flag scan), or is vertical-only collision fine
+  for now?
 - **Block placement type selection**: `obj_ray_cast`'s right-click handler
   still has `// TODO: allow selection of blocks` and always places
   `obj_grass_block`. Wire to `global.slots` once there's a real inventory?

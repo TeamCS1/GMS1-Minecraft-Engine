@@ -19,8 +19,9 @@ if (jump == false)
 {
     if (z < support_z)
     {
-        //hitting a block from the side, below its top
-        move_bounce_all(false);
+        //hitting a block from the side, below its top -- no horizontal
+        //push-back here (see obj_sand_block/obj_snow_block for why); this
+        //branch existing at all is what stops z from snapping up early
     }
     else if (z - support_z > 32)
     {
