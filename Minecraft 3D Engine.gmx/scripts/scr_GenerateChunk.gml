@@ -94,11 +94,12 @@ for (var di = 0; di < chunk_size; di++)
         //(frac(-2.3) = -0.3, not 0.7). sin(...) is negative for roughly
         //half of all tile positions, so without the abs() here, deco_hash
         //would come out negative about half the time -- and every
-        //negative number trivially satisfies "< 0.015", making roughly
-        //half of all eligible tiles spawn tall grass instead of ~1.5%.
+        //negative number trivially satisfies a "< threshold" check below,
+        //spawning tall grass on roughly half of all eligible tiles instead
+        //of the intended rate.
         var deco_hash = frac(abs(sin(tile_x * 127.1 + tile_y * 311.7 + global.deco_seed_x) * 43758.5453));
 
-        if (deco_hash < 0.015 && biome != obj_sand_block)
+        if (deco_hash < 0.1 && biome != obj_sand_block)
         {
             var deco_x = xx + 16;
             var deco_y = yy + 16;
