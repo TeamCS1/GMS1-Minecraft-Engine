@@ -87,7 +87,16 @@ for (var di = 0; di < chunk_size; di++)
         //the tile's presence is persistent, not whether a player broke
         //it (decoration edits aren't tracked, unlike solid blocks).
         //No tall grass in deserts.
-        var deco_hash = frac(sin(tile_x * 127.1 + tile_y * 311.7 + global.deco_seed_x) * 43758.5453);
+        //
+        //abs() before frac() is deliberate: unlike GLSL's fract() (which
+        //this "pseudo-random from position" trick is normally written
+        //for), GameMaker's frac() preserves sign on a negative input
+        //(frac(-2.3) = -0.3, not 0.7). sin(...) is negative for roughly
+        //half of all tile positions, so without the abs() here, deco_hash
+        //would come out negative about half the time -- and every
+        //negative number trivially satisfies "< 0.015", making roughly
+        //half of all eligible tiles spawn tall grass instead of ~1.5%.
+        var deco_hash = frac(abs(sin(tile_x * 127.1 + tile_y * 311.7 + global.deco_seed_x) * 43758.5453));
 
         if (deco_hash < 0.015 && biome != obj_sand_block)
         {

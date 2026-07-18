@@ -115,10 +115,16 @@ without introducing modern GML syntax.
   Draw-time culling below) analytically from the same height formula
   applied to its 4 neighbor tiles — no instance lookups needed, even
   across a chunk boundary. Tall-grass decoration placement uses a
-  deterministic position hash (`frac(sin(...) * 43758.5453)`, a
+  deterministic position hash (`frac(abs(sin(...) * 43758.5453))`, a
   standard "pseudo-random from position" trick) instead of `random()`,
   so the same tile always decides the same way across unload/reload; it
   sits on top of the tile's terrain surface via the same height formula.
+  The `abs()` is required in GameMaker specifically: unlike GLSL's
+  `fract()` (which this trick is normally written for), GML's `frac()`
+  preserves sign on a negative input, so without it roughly half of all
+  tiles got a negative hash — and every negative number trivially
+  satisfies a `< 0.015`-style threshold check, spawning tall grass on
+  ~50% of eligible tiles instead of ~1.5%.
   After natural generation, re-applies anything recorded in
   `global.block_edits`/`global.chunk_extra` (see below) so player edits
   survive a chunk unloading and reloading. Every spawned instance starts
