@@ -32,11 +32,9 @@ if (support_h == -1)
     return -1;
 }
 
-var support_z = support_h * 32 + 32 + 32;
-
-if (support_z < 80)
-{
-    support_z = 80;
-}
+// support_h * 32 + 32 (the block's own top) + 48 (eye offset above the
+// surface, matching scr_FindSupportHeight); h=0 always gives exactly 80,
+// so no separate ground-baseline clamp is needed.
+var support_z = support_h * 32 + 32 + 48;
 
 return support_z

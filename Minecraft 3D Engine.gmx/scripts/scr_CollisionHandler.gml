@@ -84,4 +84,6 @@ if (jump == false)
 }
 
 //layer handler: 1 = ground, 2 = one block up, 3 = two blocks up, ...
-global.layer = 1 + round((player_height - 80) / 16);
+//Each layer is a consistent 32 units apart in player_height (see
+//scr_FindSupportHeight), so this divides out exactly with no rounding.
+global.layer = 1 + (player_height - 80) / 32;

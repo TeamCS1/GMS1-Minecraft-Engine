@@ -273,17 +273,26 @@ without introducing modern GML syntax.
 - Collision (`scr_CollisionHandler.gml`, called from `obj_camera`'s Step
   event right after raycasting): uses `scr_FindSupportHeight()` to get the
   standing height the tallest solid block under the player's x/y would
-  give — its own top (`z + 32`) plus a fixed 32-unit eye offset (the same
-  offset sand was already tuned to: top 64 -> standing height 96), or -1
-  if nothing solid is there (collision then falls back to a flat ground
-  baseline of 80). Finds it by scanning upward through `global.block_lookup`
-  for that x/y column (a bounded 64-layer cap, each check O(1)) instead
-  of the project's original approach of scanning every loaded block
-  instance. This supports any number of stacked layers automatically: a
-  block placed with its own z at or above a lower block's top just
-  produces a taller support height, no per-layer code needed.
-  `global.layer` is derived from the resulting height
-  (`1 + (player_height - 80) / 16`) for the HUD/debug display.
+  give — its own top (`z + 32`) plus a 48-unit eye offset (`80` for the
+  lowest layer, `112` for one block up, `144` for two, etc., each exactly
+  32 apart), or -1 if nothing solid is there (collision then falls back
+  to a flat ground baseline of 80). An earlier version used a 32-unit
+  offset plus a special-case clamp up to 80 for the lowest layer only
+  (back when sand was the sole test bed and 96 was "standing on one
+  block" — see Roadmap); that clamp made the lowest layer feel taller
+  than every layer above it, since only it got the clamped-up value
+  while real stacked blocks used the plain unclamped formula — reported
+  as "layer 2 and up feel shorter than layer 1" and fixed by using 48
+  everywhere, which also makes the lowest layer come out to exactly 80
+  with no clamp needed. Finds it by scanning upward through
+  `global.block_lookup` for that x/y column (a bounded 64-layer cap, each
+  check O(1)) instead of the project's original approach of scanning
+  every loaded block instance. This supports any number of stacked
+  layers automatically: a block placed with its own z at or above a
+  lower block's top just produces a taller support height, no per-layer
+  code needed. `global.layer` is derived from the resulting height
+  (`1 + (player_height - 80) / 32`) for the HUD/debug display — an exact
+  division since every layer is a consistent 32 units apart.
   `scr_FindSupportHeight()` matches purely by x/y footprint, with no
   regard for how far below/above the player that block actually is, so
   collision reacts based on the gap to the player's current z rather than
@@ -375,11 +384,11 @@ without introducing modern GML syntax.
 - Block collision now generalizes to every solid block type (grass/sand/
   snow) via `obj_block_parent`, with support for stacked multi-elevation
   layers derived from each block's own z — see Architecture. Owner
-  confirmed: sand was the test bed (80 = ground, 96 = standing on one
-  block); a third layer was attempted by hand and had trouble, which is
-  what this generalization is meant to fix. Player gravity/landing is
-  handled by the existing jump code in `obj_camera`, not a separate
-  system.
+  confirmed: sand was the test bed (80 = ground, one block up was 96 at
+  the time — since revised to 112, see Architecture, Collision); a third
+  layer was attempted by hand and had trouble, which is what this
+  generalization is meant to fix. Player gravity/landing is handled by
+  the existing jump code in `obj_camera`, not a separate system.
 
 ## Open questions
 

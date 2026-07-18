@@ -1,13 +1,25 @@
 ///scr_FindSupportHeight()
 //Returns the standing height the tallest solid block under the calling
 //instance's own x/y would give (that block's own top, z + 32, plus the
-//player's 32-unit eye offset), or -1 if no solid block is there. Shared
+//player's 48-unit eye offset), or -1 if no solid block is there. Shared
 //by scr_CollisionHandler.gml and obj_camera's jump landing check so both
 //agree on what surface is currently underneath, at any elevation. For
 //an arbitrary (not-self) x/y -- e.g. the tile ahead when checking
 //horizontal push-back -- see scr_FindSupportHeightAt(check_x, check_y)
 //instead; GMS1.4 requires a script's argument count to always match its
 //call sites, so this can't just take optional arguments.
+//
+//The 48-unit offset (rather than the more obvious-looking 32) is
+//deliberate: it's what makes the formula give exactly 80 for the lowest
+//layer (h=0: 0 + 32 + 48 = 80) with no separate ground-baseline clamp
+//needed, so every layer above it steps up by a consistent 32 units too.
+//An earlier version used a 32-unit offset plus a "clamp up to 80"
+//special case for the lowest layer -- that clamp made layer 1 alone
+//feel taller (an extra 16 units of eye height) than every layer above
+//it, since only layer 1 got the clamped-up value while real stacked
+//blocks used the plain unclamped formula. Reported as "layer 2 onward
+//feels shorter than layer 1" and fixed by using the same 48-unit offset
+//everywhere instead.
 //
 //Uses global.block_lookup for an O(1) check per layer instead of
 //scanning every loaded block instance (there can be thousands). Assumes
@@ -36,15 +48,8 @@ if (support_h == -1)
     return -1;
 }
 
-var support_z = support_h * 32 + 32 + 32;
-
-// Never return a standing height below the flat ground baseline (80).
-// obj_biome_gen places grass/snow at z=0 (top 32), which under the plain
-// top+32 formula would sink the player to 64 -- lower than intended.
-// Sand's already-tuned 96 (z=32, top 64) is unaffected since it's above 80.
-if (support_z < 80)
-{
-    support_z = 80;
-}
+// support_h * 32 + 32 (the block's own top) + 48 (eye offset above the
+// surface); h=0 always gives exactly 80, so no separate clamp is needed.
+var support_z = support_h * 32 + 32 + 48;
 
 return support_z
