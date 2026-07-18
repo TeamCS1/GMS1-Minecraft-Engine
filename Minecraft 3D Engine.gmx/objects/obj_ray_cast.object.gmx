@@ -51,12 +51,18 @@ move_snap(32,32);
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>//Choose block to create TODO: allow selection of blocks
-
-
+            <string>//Choose block to create from the active hotbar slot (global.slots,
+//0-indexed -- slot 3 on the keyboard is global.slots == 2). Any slot
+//without a real item mapped to it yet still falls back to grass.
 if (mouse_check_button_released(mb_right))
 {
-    var block = instance_create(x, y, obj_grass_block);
+    var place_type = obj_grass_block;
+    if (global.slots == 2)
+    {
+        place_type = obj_wood_block;
+    }
+
+    var block = instance_create(x, y, place_type);
     block.z = z + z_offset;
 
     // Record the placement so it persists across chunk unload/reload.
@@ -77,11 +83,11 @@ if (mouse_check_button_released(mb_right))
 
     if (ds_map_exists(global.block_edits, edit_key))
     {
-        ds_map_replace(global.block_edits, edit_key, obj_grass_block);
+        ds_map_replace(global.block_edits, edit_key, place_type);
     }
     else
     {
-        ds_map_add(global.block_edits, edit_key, obj_grass_block);
+        ds_map_add(global.block_edits, edit_key, place_type);
     }
 
     // Keep the O(1) spatial lookup in sync (see global.block_lookup).

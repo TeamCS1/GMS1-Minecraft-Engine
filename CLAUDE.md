@@ -167,8 +167,8 @@ without introducing modern GML syntax.
   chunk (0,0)'s unload destroy them and their real chunk's unload miss
   them, which was the cause of a rare walk-through-block bug.
 - Block object inheritance: `obj_grass_block`, `obj_sand_block`,
-  `obj_snow_block`, and `obj_tinted_cross` are all children of
-  `obj_block_parent` (never instantiated directly). The parent defines
+  `obj_snow_block`, `obj_wood_block`, and `obj_tinted_cross` are all
+  children of `obj_block_parent` (never instantiated directly). The parent defines
   `hit_x1`/`hit_y1` — the offset of the block's hit box's near corner
   relative to its own x/y (0,0 for the cube blocks; -16,-16 for
   `obj_tinted_cross`, which is centered rather than corner-anchored) —
@@ -225,7 +225,10 @@ without introducing modern GML syntax.
   face was actually hit — side, top, or underneath — not just the top),
   with `target_block` set to the exact instance that was hit — left-click
   destroys `target_block` directly, right-click places a new block there
-  (currently hardcoded to `obj_grass_block`). The empty cell's x/y/z are
+  — `obj_grass_block` by default, or `obj_wood_block` if the active
+  hotbar slot (`global.slots`, see Roadmap) is slot 3 (`global.slots ==
+  2`, since slots are 0-indexed). Other slots have no item mapped yet and
+  still fall back to grass. The empty cell's x/y/z are
   all snapped by flooring to the 32-unit tile grid (`floor(prev_n / 32) *
   32`) rather than via `instance_create` + `move_snap`: `move_snap` rounds
   to the *nearest* grid line, and the ray's last pre-hit sample point
@@ -328,9 +331,14 @@ without introducing modern GML syntax.
   needed on it for now.
 - `rm_gen` is reserved for world-gen seeds and starting parameters for
   future terrain generation. Leave it empty/untouched for now.
-- Hotbar/inventory (`global.slots` currently only drives the HUD
-  highlight, nothing consumes it) is planned but not being worked on yet
-  — leave as-is.
+- Hotbar/inventory: `global.slots` (0-indexed, set by `obj_hud`'s number-key
+  events 1–9 and driving the HUD highlight position) now also selects
+  block-placement type in `obj_ray_cast` — see Raycasting/interaction.
+  Currently only slot 3 (`global.slots == 2`) has a real item
+  (`obj_wood_block`); every other slot still falls back to grass. A
+  fuller inventory (tracking what's actually "in" each slot, rather than
+  a fixed slot-to-block mapping) is still planned but not being worked
+  on yet.
 - Block collision now generalizes to every solid block type (grass/sand/
   snow) via `obj_block_parent`, with support for stacked multi-elevation
   layers derived from each block's own z — see Architecture. Owner
@@ -342,9 +350,6 @@ without introducing modern GML syntax.
 
 ## Open questions
 
-- **Block placement type selection**: `obj_ray_cast`'s right-click handler
-  still has `// TODO: allow selection of blocks` and always places
-  `obj_grass_block`. Wire to `global.slots` once there's a real inventory?
 - **Orphaned `backup` object**: `objects/backup.object.gmx` is registered
   in the project file but never instantiated anywhere (not in code, not in
   any room) — looks like an abandoned debug HUD for `buffer_getpixel`

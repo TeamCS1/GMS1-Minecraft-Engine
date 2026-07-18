@@ -30,6 +30,7 @@
     <sprite>sprites\spr_sand</sprite>
     <sprite>sprites\spr_snow</sprite>
     <sprite>sprites\spr_grass</sprite>
+    <sprite>sprites\spr_wooden_planks</sprite>
     <sprite>sprites\spr_hotbar</sprite>
     <sprite>sprites\spr_hotbar_slot_selected</sprite>
     <sprite>sprites\spr_mask16</sprite>
@@ -97,6 +98,7 @@
       <object>objects\obj_grass_block</object>
       <object>objects\obj_sand_block</object>
       <object>objects\obj_snow_block</object>
+      <object>objects\obj_wood_block</object>
       <object>objects\obj_tinted_cross</object>
     </objects>
     <object>objects\backup</object>
