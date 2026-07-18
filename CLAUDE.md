@@ -21,6 +21,16 @@ This is a GameMaker Studio 1.4 project using the GMX project format.
 - Prefer ds_list, ds_map and ds_grid for complex data structures.
 - Use scripts in the traditional GameMaker Studio 1.4 style.
 - Do not rename resources unless explicitly requested.
+- Scripts don't have optional arguments: GMS1.4 fixes a script's required
+  argument count at the *highest* `argumentN` referenced anywhere in its
+  body, even inside a branch that wouldn't run at runtime (e.g. guarded
+  by `argument_count`). Calling it with fewer arguments than that is a
+  compile-time error, not a graceful default — this actually crashed the
+  project at launch once (see Architecture, Collision). If a script
+  needs to work both with and without extra parameters, write two
+  separate scripts (e.g. `scr_FindSupportHeight()` /
+  `scr_FindSupportHeightAt(x, y)`) rather than branching on
+  `argument_count` inside one.
 
 ## Project changes
 
@@ -211,10 +221,19 @@ without introducing modern GML syntax.
   `global.block_lookup` check on the sample point's tile indices;
   `obj_tinted_cross` (not grid-corner-aligned, and far less numerous)
   still uses a small instance scan. On a hit, `obj_ray_cast` is spawned
-  at the last empty cell before the hit block, with `target_block` set
-  to the exact instance that was hit — left-click destroys
-  `target_block` directly, right-click places a new block there
-  (currently hardcoded to `obj_grass_block`).
+  at the last empty cell before the hit block (flush against whichever
+  face was actually hit — side, top, or underneath — not just the top),
+  with `target_block` set to the exact instance that was hit — left-click
+  destroys `target_block` directly, right-click places a new block there
+  (currently hardcoded to `obj_grass_block`). The empty cell's x/y/z are
+  all snapped by flooring to the 32-unit tile grid (`floor(prev_n / 32) *
+  32`) rather than via `instance_create` + `move_snap`: `move_snap` rounds
+  to the *nearest* grid line, and the ray's last pre-hit sample point
+  usually sits close to whichever boundary it just crossed, so
+  nearest-rounding lands in the solid cell about as often as the empty
+  one — harmless by luck on top-down hits (the world's height formula
+  only ever needs `floor` there), but visibly wrong approaching a block
+  from the side, which is what flooring x/y explicitly fixes.
 - Collision (`scr_CollisionHandler.gml`, called from `obj_camera`'s Step
   event right after raycasting): uses `scr_FindSupportHeight()` to get the
   standing height the tallest solid block under the player's x/y would
@@ -253,14 +272,20 @@ without introducing modern GML syntax.
   a block's footprint below its top). Replaced with a single-block-scoped
   version, run in `scr_CollisionHandler.gml` before the engine's automatic
   `hspeed`/`vspeed` motion applies each step: for each axis independently,
-  checks `scr_FindSupportHeight(target_x, target_y)` (now accepting an
-  optional explicit x/y, defaulting to `x`/`y` when called with no
-  arguments) against the *single* tile the player is about to step into
-  via `global.block_lookup` — O(1), not a room-wide scan — and zeroes
-  that axis's speed if the target tile's support is above the player's
-  current z (i.e. would have been a "bump"). Checking axes independently
-  (rather than canceling both together) is what lets the player slide
-  along a wall instead of stopping dead when moving diagonally into it.
+  checks `scr_FindSupportHeightAt(target_x, target_y)` against the
+  *single* tile the player is about to step into via `global.block_lookup`
+  — O(1), not a room-wide scan — and zeroes that axis's speed if the
+  target tile's support is above the player's current z (i.e. would have
+  been a "bump"). Checking axes independently (rather than canceling both
+  together) is what lets the player slide along a wall instead of
+  stopping dead when moving diagonally into it. `scr_FindSupportHeightAt`
+  is a separate script from `scr_FindSupportHeight`, not an optional
+  argument on it — GMS1.4 sizes a script's required argument count from
+  every `argumentN` referenced anywhere in its body, regardless of
+  runtime branching (e.g. an `argument_count > 0` check), so calling
+  `scr_FindSupportHeight()` with zero arguments crashes at launch the
+  moment the script body also references `argument0`/`argument1` in an
+  unreached branch — this actually happened and had to be reverted.
 - Jumping (`obj_camera`'s Step event): a simple arc — `jumpHeightModifier`
   starts at 5.0 on takeoff and decrements by 0.5 every step, added to `z`
   each frame, so it rises then falls on its own. Once `jumpHeightModifier`

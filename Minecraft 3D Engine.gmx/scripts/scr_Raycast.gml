@@ -59,9 +59,20 @@ with obj_camera
         if (hit_block != noone)
         {
             // Place the reticle at the last empty cell before the hit, so
-            // breaking targets hit_block and placing adds an adjacent block.
+            // breaking targets hit_block and placing adds an adjacent block
+            // -- flush against whichever face was actually hit (side, top,
+            // or underneath), not just the top. Snap x/y with the same
+            // floor-to-tile math already used for z below, rather than
+            // instance_create + move_snap: move_snap rounds to the
+            // *nearest* grid line, and prev_x/prev_y usually sit close to
+            // the boundary just crossed, so nearest-rounding would round
+            // into the solid cell about as often as the empty one --
+            // fine by luck when looking down at flat ground (z's floor()
+            // was already exact), but wrong on side approaches.
+            var place_x = floor(prev_x / 32) * 32;
+            var place_y = floor(prev_y / 32) * 32;
             var place_z = floor(prev_z / 32) * 32;
-            var new_ray = instance_create(prev_x, prev_y, obj_ray_cast);
+            var new_ray = instance_create(place_x, place_y, obj_ray_cast);
             new_ray.z_offset = (place_z - 32) + z_scroll_offset;
             new_ray.target_block = hit_block;
 

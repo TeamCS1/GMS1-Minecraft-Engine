@@ -61,6 +61,7 @@
     <script>scripts\instance_nth_nearest.gml</script>
     <script>scripts\scr_CollisionHandler.gml</script>
     <script>scripts\scr_FindSupportHeight.gml</script>
+    <script>scripts\scr_FindSupportHeightAt.gml</script>
     <script>scripts\scr_IsSolidBlockAt.gml</script>
     <script>scripts\scr_UpdateBuriedAround.gml</script>
     <script>scripts\scr_RecomputeBuriedAt.gml</script>

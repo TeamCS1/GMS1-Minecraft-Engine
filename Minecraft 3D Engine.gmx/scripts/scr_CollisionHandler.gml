@@ -20,7 +20,7 @@
 //still slide along a wall instead of stopping dead on a diagonal.
 if (hspeed != 0)
 {
-    var ahead_x = scr_FindSupportHeight(x + hspeed, y);
+    var ahead_x = scr_FindSupportHeightAt(x + hspeed, y);
     if (ahead_x != -1 && ahead_x > z)
     {
         hspeed = 0;
@@ -29,7 +29,7 @@ if (hspeed != 0)
 
 if (vspeed != 0)
 {
-    var ahead_y = scr_FindSupportHeight(x, y + vspeed);
+    var ahead_y = scr_FindSupportHeightAt(x, y + vspeed);
     if (ahead_y != -1 && ahead_y > z)
     {
         vspeed = 0;
