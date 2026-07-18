@@ -1,6 +1,11 @@
 # GMS1 Minecraft Engine
 
-Test file to confirm write access is working.
+A first-person voxel engine (Minecraft-style) built in GameMaker Studio
+1.4 using its legacy `d3d_*` 3D functions. Features chunk-streamed,
+effectively-infinite procedural terrain with grass/desert/snow biomes and
+flat/hilly/mountain variation, block breaking/placing with edit
+persistence, and frustum + buried-block draw culling. See Architecture
+below for how the pieces fit together.
 
 # Project instructions
 
@@ -42,10 +47,13 @@ without introducing modern GML syntax.
     paired with a companion texture file.
   - Primitive-based: built-in `d3d_*` functions (e.g. `d3d_draw_block`,
     `d3d_draw_wall`, `d3d_draw_floor`) for procedurally drawn blocks,
-    walls, and floors. See `obj_grass_block` for the pattern: render
-    only `if distance_to_object(obj_camera) < global.renderDistance`,
-    texture via `sprite_get_texture`, and toggle
-    `texture_set_interpolation` around the draw call.
+    walls, and floors. See `obj_grass_block` for the pattern: texture via
+    `sprite_get_texture`, `draw_set_alpha(fade_alpha)` around the draw
+    call (for the streamed-in fade), and toggle
+    `texture_set_interpolation` around it too. The Draw event does *not*
+    check distance/visibility itself — that's all handled by the built-in
+    `visible` flag set in `obj_block_parent`'s Step event (see Draw-time
+    culling below), so Draw only runs at all for on-screen blocks.
 - World/chunk streaming: the world is divided into `global.chunk_tiles`
   (8) x 8-tile chunks. `obj_biome_gen`'s Step event checks the player's
   current chunk each frame (cheaply — only reacts when it actually
@@ -301,3 +309,7 @@ without introducing modern GML syntax.
 ## TODO
 
 - Delete the dead `obj_camera_new` object (superseded by `obj_camera`).
+- Add a crosshair (screen-center HUD marker; `obj_hud`'s Draw GUI event
+  is the natural home, alongside the hotbar drawing).
+- Update the crosshair texture once the crosshair exists (replace
+  whatever placeholder it starts with).
