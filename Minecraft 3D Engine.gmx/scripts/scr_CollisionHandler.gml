@@ -9,6 +9,33 @@
 //standing on, or start falling (the same arc a jump uses) if it's far
 //below -- e.g. after walking off the edge of a tall stack.
 
+//Horizontal push-back: stop the player from walking into the side of a
+//block taller than their current eye height, before the engine's
+//automatic hspeed/vspeed motion applies this step -- same practical
+//effect move_bounce_all(false) used to give (can't walk through a wall),
+//but checking only the single tile actually being stepped into via
+//global.block_lookup (O(1)) instead of a room-wide scan against every
+//solid-flagged instance (see obj_sand_block/obj_snow_block for why that
+//scan was removed). Each axis is checked independently so the player can
+//still slide along a wall instead of stopping dead on a diagonal.
+if (hspeed != 0)
+{
+    var ahead_x = scr_FindSupportHeight(x + hspeed, y);
+    if (ahead_x != -1 && ahead_x > z)
+    {
+        hspeed = 0;
+    }
+}
+
+if (vspeed != 0)
+{
+    var ahead_y = scr_FindSupportHeight(x, y + vspeed);
+    if (ahead_y != -1 && ahead_y > z)
+    {
+        vspeed = 0;
+    }
+}
+
 var support_z = scr_FindSupportHeight();
 if (support_z == -1)
 {
@@ -19,9 +46,12 @@ if (jump == false)
 {
     if (z < support_z)
     {
-        //hitting a block from the side, below its top -- no horizontal
-        //push-back here (see obj_sand_block/obj_snow_block for why); this
-        //branch existing at all is what stops z from snapping up early
+        //hitting a block from the side, below its top. Normally the
+        //horizontal push-back above already stopped the player from
+        //walking into this position in the first place -- this branch is
+        //what still catches it if a block appears underneath some other
+        //way (placed by the player while standing there, edit replay on
+        //chunk reload, etc.) by refusing to snap z upward early.
     }
     else if (z - support_z > 32)
     {
