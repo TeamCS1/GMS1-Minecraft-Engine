@@ -56,75 +56,110 @@ move_snap(32,32);
 //without a real item mapped to it yet still falls back to grass.
 if (mouse_check_button_released(mb_right))
 {
-    var place_type = obj_grass_block;
-    if (global.slots == 2)
-    {
-        place_type = obj_wood_block;
-    }
-
-    var block = instance_create(x, y, place_type);
-    block.z = z + z_offset;
-
-    // Record the placement so it persists across chunk unload/reload.
     var tile_x = x / 32;
     var tile_y = y / 32;
-    var layer_h = block.z / 32;
-    var height_tier = scr_GetHeightTier(tile_x, tile_y);
+    var layer_h = (z + z_offset) / 32;
     var edit_key = scr_EncodeBlockKey(tile_x, tile_y, layer_h);
 
-    // Tag the block with the chunk it actually sits in. Without this it
-    // keeps the parent's default chunk_cx/chunk_cy of (0,0), so its real
-    // chunk's unload would leave it behind and chunk (0,0)'s unload
-    // would wrongly destroy it -- deleting the lookup entry that a
-    // regenerated duplicate in the same cell now owns, leaving that
-    // block visible but collisionless.
-    block.chunk_cx = floor(tile_x / global.chunk_tiles);
-    block.chunk_cy = floor(tile_y / global.chunk_tiles);
-
-    if (ds_map_exists(global.block_edits, edit_key))
-    {
-        ds_map_replace(global.block_edits, edit_key, place_type);
-    }
-    else
-    {
-        ds_map_add(global.block_edits, edit_key, place_type);
-    }
-
-    // Keep the O(1) spatial lookup in sync (see global.block_lookup).
+    // Guard against creating a second block on top of one that's already
+    // here. This reticle can persist for several frames without its
+    // target moving (see obj_camera/scr_Raycast's raycastDelay), so more
+    // than one right-click in that window used to fire this event twice
+    // at the exact same cell: block_lookup only ever remembers the
+    // newest instance, so the older one was left behind permanently --
+    // still alive, still running Step/Draw every frame, but invisible to
+    // raycasting/collision and impossible to break. That's the main
+    // cause of fps dropping while placing blocks and not recovering
+    // afterwards.
+    var occupied = false;
     if (ds_map_exists(global.block_lookup, edit_key))
     {
-        ds_map_replace(global.block_lookup, edit_key, block);
-    }
-    else
-    {
-        ds_map_add(global.block_lookup, edit_key, block);
-    }
-
-    if (layer_h &gt; height_tier)
-    {
-        // Outside the natural column -- the natural fill loop never
-        // visits this h, so track it separately for scr_GenerateChunk
-        // to re-create on reload.
-        var chunk_cx = floor(tile_x / global.chunk_tiles);
-        var chunk_cy = floor(tile_y / global.chunk_tiles);
-        var chunk_key = scr_EncodeChunkKey(chunk_cx, chunk_cy);
-
-        var extra_list = -1;
-        if (ds_map_exists(global.chunk_extra, chunk_key))
+        if (instance_exists(ds_map_find_value(global.block_lookup, edit_key)))
         {
-            extra_list = ds_map_find_value(global.chunk_extra, chunk_key);
+            occupied = true;
+        }
+    }
+
+    if (!occupied)
+    {
+        var place_type = obj_grass_block;
+        if (global.slots == 2)
+        {
+            place_type = obj_wood_block;
+        }
+
+        var block = instance_create(x, y, place_type);
+        block.z = z + z_offset;
+
+        // Record the placement so it persists across chunk unload/reload.
+        var height_tier = scr_GetHeightTier(tile_x, tile_y);
+
+        // Tag the block with the chunk it actually sits in. Without this it
+        // keeps the parent's default chunk_cx/chunk_cy of (0,0), so its real
+        // chunk's unload would leave it behind and chunk (0,0)'s unload
+        // would wrongly destroy it -- deleting the lookup entry that a
+        // regenerated duplicate in the same cell now owns, leaving that
+        // block visible but collisionless.
+        block.chunk_cx = floor(tile_x / global.chunk_tiles);
+        block.chunk_cy = floor(tile_y / global.chunk_tiles);
+
+        if (ds_map_exists(global.block_edits, edit_key))
+        {
+            ds_map_replace(global.block_edits, edit_key, place_type);
         }
         else
         {
-            extra_list = ds_list_create();
-            ds_map_add(global.chunk_extra, chunk_key, extra_list);
+            ds_map_add(global.block_edits, edit_key, place_type);
         }
 
-        ds_list_add(extra_list, edit_key);
+        // Keep the O(1) spatial lookup in sync (see global.block_lookup).
+        if (ds_map_exists(global.block_lookup, edit_key))
+        {
+            ds_map_replace(global.block_lookup, edit_key, block);
+        }
+        else
+        {
+            ds_map_add(global.block_lookup, edit_key, block);
+        }
+
+        if (layer_h &gt; height_tier)
+        {
+            // Outside the natural column -- the natural fill loop never
+            // visits this h, so track it separately for scr_GenerateChunk
+            // to re-create on reload.
+            var chunk_cx = floor(tile_x / global.chunk_tiles);
+            var chunk_cy = floor(tile_y / global.chunk_tiles);
+            var chunk_key = scr_EncodeChunkKey(chunk_cx, chunk_cy);
+
+            var extra_list = -1;
+            if (ds_map_exists(global.chunk_extra, chunk_key))
+            {
+                extra_list = ds_map_find_value(global.chunk_extra, chunk_key);
+            }
+            else
+            {
+                extra_list = ds_list_create();
+                ds_map_add(global.chunk_extra, chunk_key, extra_list);
+            }
+
+            // The same position can be built on, broken, and rebuilt many
+            // times -- avoid growing this list with duplicate keys forever.
+            if (ds_list_find_index(extra_list, edit_key) == -1)
+            {
+                ds_list_add(extra_list, edit_key);
+            }
+        }
+
+        // A newly placed block might bury a neighbor (or itself sit exposed).
+        scr_UpdateBuriedAround(x, y, block.z);
     }
 
-    // A newly placed block might bury a neighbor (or itself sit exposed).
-    scr_UpdateBuriedAround(x, y, block.z);
+    // Refresh the target immediately instead of waiting out the rest of
+    // raycastDelay's window -- besides feeling more responsive, this is
+    // what actually closes the duplicate-placement window above: the next
+    // frame's scr_Raycast() spawns a fresh reticle against the now-current
+    // world state instead of reusing this stale one.
+    instance_destroy();
 }
 
     
@@ -209,12 +244,43 @@ if (instance_exists(target_block))
             {
                 ds_map_delete(global.block_edits, edit_key);
             }
+
+            // Also drop it from chunk_extra's replay list, or its key
+            // would sit there forever -- harmless on its own
+            // (scr_GenerateChunk dedupes the list and skips any entry
+            // whose block_edits is gone) but grows unbounded for a chunk
+            // that never unloads while a spot gets built/broken on
+            // repeatedly.
+            var chunk_cx = floor(tile_x / global.chunk_tiles);
+            var chunk_cy = floor(tile_y / global.chunk_tiles);
+            var chunk_key = scr_EncodeChunkKey(chunk_cx, chunk_cy);
+
+            if (ds_map_exists(global.chunk_extra, chunk_key))
+            {
+                var extra_list = ds_map_find_value(global.chunk_extra, chunk_key);
+                var extra_idx = ds_list_find_index(extra_list, edit_key);
+
+                if (extra_idx != -1)
+                {
+                    ds_list_delete(extra_list, extra_idx);
+                }
+
+                if (ds_list_size(extra_list) == 0)
+                {
+                    ds_list_destroy(extra_list);
+                    ds_map_delete(global.chunk_extra, chunk_key);
+                }
+            }
         }
     }
 
     // Destroying a block can expose whatever neighbors it was covering.
     scr_UpdateBuriedAround(broken_x, broken_y, broken_z);
 }
+
+// Refresh the target immediately rather than waiting out the rest of
+// raycastDelay's window -- see the placement handler for why.
+instance_destroy();
 
 </string>
           </argument>

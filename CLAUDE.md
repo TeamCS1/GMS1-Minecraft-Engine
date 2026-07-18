@@ -139,8 +139,15 @@ without introducing modern GML syntax.
   `ds_map` keyed by `scr_EncodeChunkKey` to a `ds_list` of the affected
   position keys — which `scr_GenerateChunk` replays after the natural
   pass. Breaking a natural-column block just marks it `0`; breaking an
-  "extra" placement deletes its `block_edits` entry outright, since
-  there's no natural fallback to remember. Decorative blocks
+  "extra" placement deletes its `block_edits` entry outright (and its
+  `chunk_extra` list entry too, destroying the list and removing the map
+  entry if that empties it out — the same position can be built on and
+  broken many times, and `scr_GenerateChunk`'s replay already dedupes the
+  list and skips any entry whose `block_edits` is gone, but leaving stale
+  keys in forever still means an ever-larger list to iterate every time
+  that chunk regenerates), since there's no natural fallback to remember.
+  The place handler dedupes the same way going in: it only appends a
+  position key to the list if it isn't already there. Decorative blocks
   (`obj_tinted_cross`) are deliberately **not** tracked this way (they
   aren't grid-aligned, and their placement is already deterministic-by-
   position) — breaking one doesn't persist.
@@ -213,7 +220,12 @@ without introducing modern GML syntax.
   lookups needed), and `scr_UpdateBuriedAround(cx, cy, cz)` recomputes it
   via `global.block_lookup`/`scr_RecomputeBuriedAt` for the handful of
   blocks touching a given cell whenever `obj_ray_cast` places or breaks a
-  block.
+  block. A buried instance exits its Step event immediately after setting
+  `visible = false` (jumping `fade_alpha` straight to `1` first, since
+  it'll need to be fully opaque already if `scr_UpdateBuriedAround` ever
+  un-buries it later) instead of also running the fade-in ramp below
+  every frame it stays buried — pointless work for blocks that, by
+  definition, can never be drawn.
 - Raycasting/interaction (`scr_Raycast.gml`, called from `obj_camera`'s Step
   event): marches a ray from the camera's eye position along the actual
   look vector (`lookx`/`looky`/`lookz`, derived from `facingDir`/`zdir`)
@@ -237,6 +249,27 @@ without introducing modern GML syntax.
   one — harmless by luck on top-down hits (the world's height formula
   only ever needs `floor` there), but visibly wrong approaching a block
   from the side, which is what flooring x/y explicitly fixes.
+  `obj_ray_cast` deliberately persists for several frames without its
+  target moving (`raycastDelay` in `obj_camera`'s Step event, destroying
+  all `obj_ray_cast` instances once it hits 8) rather than respawning
+  every frame, to avoid re-marching the ray that often — but that also
+  meant the *same* reticle instance could receive more than one real
+  click before it refreshed, and each click created another block at the
+  exact same cell: `global.block_lookup`'s replace-or-add only ever
+  remembers the newest instance, so the older duplicate was left behind
+  permanently — still alive, still running Step/Draw every frame, but
+  invisible to raycasting/collision (which only ever see whatever
+  `block_lookup` currently points at) and impossible to break. This was
+  the main cause of fps dropping while placing blocks and not recovering
+  afterwards. Fixed two ways: the place handler now checks
+  `global.block_lookup` for the target cell and skips creating anything
+  if a live instance is already there, and both the place and break
+  handlers now call `instance_destroy()` on the reticle itself as their
+  last step instead of waiting out the rest of `raycastDelay`'s window —
+  besides feeling more responsive, this is what actually closes the
+  window for a second click to land on a stale target in the first
+  place, since the next frame's `scr_Raycast()` spawns a fresh reticle
+  against the now-current world state.
 - Collision (`scr_CollisionHandler.gml`, called from `obj_camera`'s Step
   event right after raycasting): uses `scr_FindSupportHeight()` to get the
   standing height the tallest solid block under the player's x/y would

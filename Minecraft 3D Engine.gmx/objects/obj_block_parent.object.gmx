@@ -102,7 +102,14 @@ fade_alpha = 0;
 // calling it to do nothing.
 if (is_buried)
 {
+    // A buried block can never be seen, so there's nothing to fade in --
+    // skip the distance/frustum math below entirely and jump straight to
+    // fade_alpha = 1, instead of ramping it 0.05/frame for however long
+    // the block stays buried. It'll go right back to normal if
+    // scr_UpdateBuriedAround ever un-buries it later.
     visible = false;
+    fade_alpha = 1;
+    exit;
 }
 else
 {
