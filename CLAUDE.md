@@ -69,7 +69,16 @@ without introducing modern GML syntax.
   tier 1 — completely flat areas spanning multiple chunks, in any biome.
   Flat regions deliberately sit at the *middle* tier so their boundary
   against hilly terrain (tiers 0–2) is never more than a one-block step,
-  avoiding unclimbable cliffs at the seam. `scr_GetBiome(chunk_cx,
+  avoiding unclimbable cliffs at the seam. A third "mountain mask"
+  (`global.mountain_seed_x`/`y`) adds extra tiers on top of the base
+  hills in grass and snow biomes only (never desert — the boost is
+  gated on the tile's chunk biome via `scr_GetBiome`): where its
+  low-frequency field exceeds a threshold, the boost ramps up smoothly
+  with distance above the threshold, up to about +5 tiers (peaks around
+  tier 7), so tall hills rise adjacent to normal hills a step or two per
+  tile rather than as sheer walls. Plains win over mountains (the flat
+  check runs first). A mountain region straddling a desert border
+  produces a deliberate mesa-style cliff on the desert side. `scr_GetBiome(chunk_cx,
   chunk_cy)` picks the terrain block type per chunk — grass (most
   common), sand (desert), or snow — from a low-frequency function of
   chunk coordinates (`global.biome_seed_x`/`y`), so biomes form coherent
