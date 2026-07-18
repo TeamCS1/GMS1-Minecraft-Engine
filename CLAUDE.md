@@ -278,7 +278,16 @@ without introducing modern GML syntax.
   target tile's support is above the player's current z (i.e. would have
   been a "bump"). Checking axes independently (rather than canceling both
   together) is what lets the player slide along a wall instead of
-  stopping dead when moving diagonally into it. `scr_FindSupportHeightAt`
+  stopping dead when moving diagonally into it. Only applies while
+  grounded (`jump == false`): climbing a tier has always worked by
+  drifting laterally onto the taller tile's footprint mid-jump, while
+  still below its top, then getting snapped up once the falling-phase
+  landing check (see Jumping below) finds the new, higher support
+  underneath — a single jump's arc doesn't actually rise a full tier's
+  height before that lateral drift needs to happen, so applying the
+  push-back during a jump the same way as while grounded blocked every
+  tier climb, not just wall-bumping; this was caught and fixed as a
+  regression right after the push-back was first added. `scr_FindSupportHeightAt`
   is a separate script from `scr_FindSupportHeight`, not an optional
   argument on it — GMS1.4 sizes a script's required argument count from
   every `argumentN` referenced anywhere in its body, regardless of
